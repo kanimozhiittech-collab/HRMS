@@ -9,12 +9,15 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.config import RENEWAL_REMINDER_DAYS
-from app.utils import add_notification, send_email
+from app.utils import add_notification, get_setting, send_email
 
 
 def run_expiry_check(db: Session) -> dict:
     today = date.today()
-    reminder_limit = today + timedelta(days=RENEWAL_REMINDER_DAYS)
+    # Reminder days comes from Global Settings (fallback: .env value)
+    reminder_days = int(get_setting(db, "renewal_reminder_days",
+                                    str(RENEWAL_REMINDER_DAYS)))
+    reminder_limit = today + timedelta(days=reminder_days)
     reminded, suspended = 0, 0
 
     active_subs = (

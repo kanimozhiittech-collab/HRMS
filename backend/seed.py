@@ -3,6 +3,7 @@
 Creates:
 1. The Super Admin login (email: superadmin@hrms.com, password: Admin@123)
 2. The 4 subscription plans (Free, Basic, Professional, Enterprise)
+3. Default Global Settings
 """
 import json
 
@@ -54,6 +55,15 @@ PLANS = [
 ]
 
 
+SETTINGS = [
+    ("platform_name", "HRMS SaaS Platform", "Name shown on the platform"),
+    ("support_email", "support@hrms.com", "Support contact email"),
+    ("company_login_url", "http://localhost:3000", "Login URL sent in welcome email"),
+    ("renewal_reminder_days", "7", "Send renewal reminder this many days before expiry"),
+    ("invoice_prefix", "INV", "Prefix used in invoice numbers"),
+]
+
+
 def seed():
     db = SessionLocal()
     try:
@@ -86,6 +96,17 @@ def seed():
                 included_modules=json.dumps(plan_data["included_modules"]),
             ))
             print(f"Plan created: {plan_data['plan_name']}")
+
+        # 3. Global Settings
+        for key, value, description in SETTINGS:
+            exists = db.query(models.Setting).filter(
+                models.Setting.setting_key == key).first()
+            if exists:
+                print(f"Setting already exists: {key}")
+                continue
+            db.add(models.Setting(setting_key=key, setting_value=value,
+                                  description=description))
+            print(f"Setting created: {key} = {value}")
 
         db.commit()
         print("\nSeeding done!")

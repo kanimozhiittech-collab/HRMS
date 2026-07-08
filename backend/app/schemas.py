@@ -216,6 +216,17 @@ class AuditLogOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ---------- Global Settings ----------
+
+class SettingOut(BaseModel):
+    setting_key: str
+    setting_value: Optional[str] = None
+    description: Optional[str] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
 # ---------- Dashboard ----------
 
 class DashboardOut(BaseModel):

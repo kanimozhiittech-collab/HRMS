@@ -208,6 +208,18 @@ class Notification(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+# ---------- Table 9: settings (Global Settings module) ----------
+
+class Setting(Base):
+    __tablename__ = "settings"
+
+    id = Column(Integer, primary_key=True)
+    setting_key = Column(String(100), unique=True, nullable=False)
+    setting_value = Column(String(255))
+    description = Column(String(255))
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # ---------- Table 8: audit_logs ----------
 
 class AuditLog(Base):
