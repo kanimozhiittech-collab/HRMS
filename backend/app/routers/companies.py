@@ -18,7 +18,7 @@ from app import models, schemas
 from app.database import get_db
 from app.security import hash_password, require_super_admin
 from app.utils import (add_audit_log, add_notification, generate_temp_password,
-                       send_email)
+                       get_setting, send_email)
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
@@ -150,12 +150,13 @@ def approve_company(
     db.add(company_admin)
 
     # Step 5: welcome email (prints to console until SMTP is connected)
+    login_url = get_setting(db, "company_login_url", "http://your-domain.com")
     send_email(
         company.admin_email,
         "Welcome to HRMS — your account is ready",
         f"Hello {company.admin_name},\n\n"
         f"Your company '{company.company_name}' is approved!\n"
-        f"Login URL : http://your-domain.com\n"
+        f"Login URL : {login_url}\n"
         f"Email     : {company.admin_email}\n"
         f"Password  : {temp_password} (temporary — you must change it on first login)\n",
     )

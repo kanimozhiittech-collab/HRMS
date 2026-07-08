@@ -9,6 +9,15 @@ from sqlalchemy.orm import Session
 from app import models
 
 
+def get_setting(db: Session, key: str, default: str = None) -> str:
+    """Read one value from the settings table. Returns default if not found."""
+    setting = db.query(models.Setting).filter(
+        models.Setting.setting_key == key).first()
+    if setting and setting.setting_value is not None:
+        return setting.setting_value
+    return default
+
+
 def generate_temp_password(length: int = 10) -> str:
     """Make a random temporary password like 'aB3xY9kP2m'."""
     chars = string.ascii_letters + string.digits

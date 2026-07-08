@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import SessionLocal
 from app.expiry import run_expiry_check
 from app.routers import (audit_logs, auth, companies, dashboard, notifications,
-                         payments, plans, reports, subscriptions,
+                         payments, plans, reports, settings, subscriptions,
                          support_tickets, users)
 
 
@@ -64,6 +64,7 @@ app.include_router(support_tickets.router)
 app.include_router(notifications.router)
 app.include_router(audit_logs.router)
 app.include_router(reports.router)
+app.include_router(settings.router)
 
 
 @app.get("/")
