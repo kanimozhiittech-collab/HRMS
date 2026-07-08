@@ -1,4 +1,10 @@
 """Alembic migration environment — connects migrations to our app."""
+import os
+import sys
+
+# Add the backend folder to Python's path so "from app import ..." works
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from logging.config import fileConfig
 
 from alembic import context
