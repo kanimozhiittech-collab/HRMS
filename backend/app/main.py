@@ -44,6 +44,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# On Vercel the backend service receives the full public path
+# (/api/backend/...); strip that prefix so routes match both there
+# and when running locally (where requests arrive without it).
+VERCEL_PREFIX = "/api/backend"
+
+
+@app.middleware("http")
+async def strip_vercel_prefix(request, call_next):
+    path = request.scope.get("path", "")
+    if path.startswith(VERCEL_PREFIX):
+        request.scope["path"] = path[len(VERCEL_PREFIX):] or "/"
+    return await call_next(request)
+
 # Allow the frontend (any origin for now — restrict in production)
 app.add_middleware(
     CORSMiddleware,
