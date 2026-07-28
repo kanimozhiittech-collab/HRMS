@@ -83,3 +83,14 @@ app.include_router(settings.router)
 @app.get("/")
 def health():
     return {"status": "ok", "app": "HRMS Super Admin API"}
+
+
+@app.get("/env-check")
+def env_check():
+    """Deploy diagnostic: shows which DB host the service sees (no secrets)."""
+    from urllib.parse import urlparse
+
+    from app.config import DATABASE_URL
+
+    host = urlparse(DATABASE_URL).hostname or ""
+    return {"db_host": host, "is_neon": "neon.tech" in host}
