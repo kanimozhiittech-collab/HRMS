@@ -11,10 +11,12 @@ POST /companies/{id}/reactivate -> reactivate a suspended company
 from datetime import date, datetime, timedelta
 from typing import Optional
 
+import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app import models, schemas
+from app.config import COMPANY_HRMS_URL, PROVISION_SECRET
 from app.database import get_db
 from app.security import hash_password, require_super_admin
 from app.utils import (add_audit_log, add_notification, generate_temp_password,
@@ -23,16 +25,101 @@ from app.utils import (add_audit_log, add_notification, generate_temp_password,
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
 
-# ---------- Phase 3: public registration ----------
+def _provision_tenant(company: "models.Company", admin_name: str, temp_password: str) -> None:
+    """Tell the company-side HRMS app to create this company + admin login.
+    Raises if it fails, so the approval transaction rolls back and can be retried."""
+    try:
+        resp = requests.post(
+            f"{COMPANY_HRMS_URL}/api/provisioning/companies",
+            json={
+                "company_name": company.company_name,
+                "admin_name": admin_name,
+                "admin_email": company.admin_email,
+                "temp_password": temp_password,
+            },
+            headers={"X-Provision-Secret": PROVISION_SECRET},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        raise HTTPException(502, f"Could not provision tenant in company HRMS app: {e}")
 
-@router.post("/register", response_model=schemas.CompanyOut)
+
+def _onboard_company(db: Session, company: "models.Company", request: Request = None,
+                     admin_id: Optional[int] = None) -> str:
+    """The full onboarding chain, shared by auto-approve (register) and manual approve:
+    1. Company becomes active
+    2. Subscription is created from the selected plan
+    3. Company database name is decided (dedicated for Enterprise, shared for others)
+    4. Company Admin user + tenant are created (locally and in the company-side HRMS app)
+    5. Welcome email is sent
+    Returns the generated temp password.
+    """
+    plan = db.get(models.Plan, company.plan_id)
+
+    company.status = models.CompanyStatus.active
+    company.approved_by = admin_id
+    company.approved_at = datetime.utcnow()
+
+    days = plan.trial_period_days if plan.trial_period_days > 0 else 30
+    subscription = models.Subscription(
+        company_id=company.id,
+        plan_id=plan.id,
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=days),
+        status=models.SubscriptionStatus.active,
+    )
+    db.add(subscription)
+
+    if "enterprise" in plan.plan_name.lower():
+        company.database_type = models.DatabaseType.dedicated
+        company.database_name = f"hrms_company_{company.id}"
+    else:
+        company.database_type = models.DatabaseType.shared
+        company.database_name = "hrms_shared"
+
+    temp_password = generate_temp_password()
+    company_admin = models.User(
+        company_id=company.id,
+        name=company.admin_name,
+        email=company.admin_email,
+        password_hash=hash_password(temp_password),
+        role=models.UserRole.company_admin,
+        is_temp_password=True,
+    )
+    db.add(company_admin)
+
+    _provision_tenant(company, company.admin_name, temp_password)
+
+    login_url = get_setting(db, "company_login_url", "http://your-domain.com")
+    send_email(
+        company.admin_email,
+        "Welcome to HRMS — your account is ready",
+        f"Hello {company.admin_name},\n\n"
+        f"Your company '{company.company_name}' is approved!\n"
+        f"Login URL : {login_url}\n"
+        f"Email     : {company.admin_email}\n"
+        f"Password  : {temp_password} (temporary — you must change it on first login)\n",
+    )
+
+    add_notification(db, "company_approved", "Company approved",
+                     f"{company.company_name} was approved.", company_id=company.id)
+    add_audit_log(db, "approve_company", "companies",
+                  f"Approved {company.company_name}", user_id=admin_id, request=request)
+    return temp_password
+
+
+# ---------- Phase 3: public registration (auto-approved) ----------
+
+@router.post("/register", response_model=schemas.CompanyRegisterOut)
 def register_company(body: schemas.CompanyRegister, db: Session = Depends(get_db)):
-    """A new company fills the registration form. Status starts as 'pending'."""
+    """A new company fills the registration form and is onboarded immediately —
+    no manual review. Their admin login is created right away, here and in the
+    company-side HRMS app, and shown in the response."""
     plan = db.get(models.Plan, body.plan_id)
     if not plan or plan.status != models.PlanStatus.active:
         raise HTTPException(status_code=400, detail="Selected plan is not available")
 
-    # Same email should not already be a user
     exists = db.query(models.User).filter(models.User.email == body.admin_email).first()
     if exists:
         raise HTTPException(status_code=400, detail="This admin email is already used")
@@ -46,19 +133,17 @@ def register_company(body: schemas.CompanyRegister, db: Session = Depends(get_db
         status=models.CompanyStatus.pending,
     )
     db.add(company)
-    db.flush()  # gives company.id before commit
+    db.flush()  # gives company.id before onboarding needs it
 
-    # Tell the Super Admin a new registration arrived (Phase 3.2)
-    add_notification(
-        db, "new_registration", "New company registration",
-        f"{body.company_name} registered and is waiting for approval.",
-        company_id=company.id,
-    )
+    temp_password = _onboard_company(db, company)
     add_audit_log(db, "register", "companies",
-                  f"{body.company_name} submitted registration")
+                  f"{body.company_name} registered and was auto-approved")
     db.commit()
     db.refresh(company)
-    return company
+
+    result = schemas.CompanyOut.model_validate(company).model_dump()
+    result["temp_password"] = temp_password
+    return result
 
 
 # ---------- Super Admin: list and view ----------
@@ -96,75 +181,15 @@ def approve_company(
     admin: models.User = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
-    """One click does everything:
-    1. Company becomes active
-    2. Subscription is created from the selected plan
-    3. Company database name is decided (dedicated for Enterprise, shared for others)
-    4. Company Admin user is created with a temporary password
-    5. Welcome email is sent
-    """
+    """For any company that's still 'pending' (registered before auto-approve
+    existed). Runs the same onboarding chain registration now does automatically."""
     company = db.get(models.Company, company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     if company.status != models.CompanyStatus.pending:
         raise HTTPException(status_code=400, detail="Only pending companies can be approved")
 
-    plan = db.get(models.Plan, company.plan_id)
-
-    # Step 1: activate company
-    company.status = models.CompanyStatus.active
-    company.approved_by = admin.id
-    company.approved_at = datetime.utcnow()
-
-    # Step 2: create subscription (trial days if plan has them, else 30 days)
-    days = plan.trial_period_days if plan.trial_period_days > 0 else 30
-    subscription = models.Subscription(
-        company_id=company.id,
-        plan_id=plan.id,
-        start_date=date.today(),
-        end_date=date.today() + timedelta(days=days),
-        status=models.SubscriptionStatus.active,
-    )
-    db.add(subscription)
-
-    # Step 3: decide database (Enterprise plan = dedicated, others = shared)
-    if "enterprise" in plan.plan_name.lower():
-        company.database_type = models.DatabaseType.dedicated
-        company.database_name = f"hrms_company_{company.id}"
-    else:
-        company.database_type = models.DatabaseType.shared
-        company.database_name = "hrms_shared"
-    # NOTE: actual tenant database creation + migration happens in the
-    # company-side HRMS project. Here we only record which database to use.
-
-    # Step 4: create the Company Admin user with a temp password
-    temp_password = generate_temp_password()
-    company_admin = models.User(
-        company_id=company.id,
-        name=company.admin_name,
-        email=company.admin_email,
-        password_hash=hash_password(temp_password),
-        role=models.UserRole.company_admin,
-        is_temp_password=True,
-    )
-    db.add(company_admin)
-
-    # Step 5: welcome email (prints to console until SMTP is connected)
-    login_url = get_setting(db, "company_login_url", "http://your-domain.com")
-    send_email(
-        company.admin_email,
-        "Welcome to HRMS — your account is ready",
-        f"Hello {company.admin_name},\n\n"
-        f"Your company '{company.company_name}' is approved!\n"
-        f"Login URL : {login_url}\n"
-        f"Email     : {company.admin_email}\n"
-        f"Password  : {temp_password} (temporary — you must change it on first login)\n",
-    )
-
-    add_notification(db, "company_approved", "Company approved",
-                     f"{company.company_name} was approved.", company_id=company.id)
-    add_audit_log(db, "approve_company", "companies",
-                  f"Approved {company.company_name}", user_id=admin.id, request=request)
+    temp_password = _onboard_company(db, company, request=request, admin_id=admin.id)
     db.commit()
 
     return {
