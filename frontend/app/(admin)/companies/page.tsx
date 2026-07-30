@@ -1,11 +1,14 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Plus } from "lucide-react";
 import { api, fmtDate } from "@/lib/api";
 import type { Company, Plan } from "@/lib/types";
 import {
   Button,
   ErrorNote,
+  Field,
+  inputCls,
   Modal,
   PageHeader,
   StatusBadge,
@@ -37,6 +40,17 @@ function CompaniesContent() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [approved, setApproved] = useState<ApproveResult | null>(null);
   const [loaded, setLoaded] = useState(false);
+
+  // Add Company modal state
+  const [showAdd, setShowAdd] = useState(false);
+  const [addBusy, setAddBusy] = useState(false);
+  const [addForm, setAddForm] = useState({
+    company_name: "",
+    admin_name: "",
+    admin_email: "",
+    phone: "",
+    plan_id: "",
+  });
 
   const load = useCallback(async (status: string) => {
     try {
@@ -72,11 +86,53 @@ function CompaniesContent() {
     }
   };
 
+  const addCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setAddBusy(true);
+    try {
+      await api("/companies/register", {
+        method: "POST",
+        body: JSON.stringify({
+          company_name: addForm.company_name,
+          admin_name: addForm.admin_name,
+          admin_email: addForm.admin_email,
+          phone: addForm.phone || null,
+          plan_id: Number(addForm.plan_id),
+        }),
+      });
+      setShowAdd(false);
+      setAddForm({
+        company_name: "",
+        admin_name: "",
+        admin_email: "",
+        phone: "",
+        plan_id: "",
+      });
+      setTab("pending"); // new company lands in Pending — jump there
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Add company failed");
+    } finally {
+      setAddBusy(false);
+    }
+  };
+
+  const setAdd = (key: keyof typeof addForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setAddForm((f) => ({ ...f, [key]: e.target.value }));
+
   return (
     <div>
       <PageHeader
         title="Companies"
         subtitle="Registrations, approvals and company status"
+        actions={
+          <Button onClick={() => setShowAdd(true)}>
+            <span className="inline-flex items-center gap-1.5">
+              <Plus size={15} /> Add Company
+            </span>
+          </Button>
+        }
       />
       <ErrorNote message={error} />
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
@@ -180,6 +236,77 @@ function CompaniesContent() {
             Shown here because email sending is not connected yet. The admin
             must change this password on first login.
           </p>
+        </Modal>
+      )}
+
+      {showAdd && (
+        <Modal title="Add Company" onClose={() => setShowAdd(false)}>
+          <form onSubmit={addCompany} className="flex flex-col gap-4">
+            <Field label="Company name">
+              <input
+                required
+                className={inputCls}
+                value={addForm.company_name}
+                onChange={setAdd("company_name")}
+                placeholder="Erode Spinners Pvt Ltd"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Admin name">
+                <input
+                  required
+                  className={inputCls}
+                  value={addForm.admin_name}
+                  onChange={setAdd("admin_name")}
+                />
+              </Field>
+              <Field label="Phone (optional)">
+                <input
+                  className={inputCls}
+                  value={addForm.phone}
+                  onChange={setAdd("phone")}
+                />
+              </Field>
+            </div>
+            <Field label="Admin email">
+              <input
+                type="email"
+                required
+                className={inputCls}
+                value={addForm.admin_email}
+                onChange={setAdd("admin_email")}
+              />
+            </Field>
+            <Field label="Plan">
+              <select
+                required
+                className={inputCls}
+                value={addForm.plan_id}
+                onChange={setAdd("plan_id")}
+              >
+                <option value="">Select plan…</option>
+                {[...plans.values()]
+                  .filter((p) => p.status === "active")
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.plan_name}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            <p className="text-xs text-stone-400">
+              Company is created in Pending status — approve it to activate,
+              create the subscription and the admin login.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setShowAdd(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={addBusy}>
+                {addBusy ? "Adding…" : "Add Company"}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>
