@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api, setSession } from "@/lib/api";
 import { Button, ErrorNote, Field, inputCls } from "@/components/ui";
 
@@ -76,6 +77,15 @@ export default function LoginPage() {
           <Button type="submit" disabled={busy} className="mt-2 w-full py-2.5">
             {busy ? "Signing in…" : "Sign In"}
           </Button>
+          <p className="text-center text-sm text-stone-500">
+            New company?{" "}
+            <Link
+              href="/register"
+              className="font-medium text-stone-800 underline"
+            >
+              Register here
+            </Link>
+          </p>
         </form>
       </div>
     </div>
