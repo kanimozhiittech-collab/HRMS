@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { api, fmtDate } from "@/lib/api";
 import type { Company, Plan } from "@/lib/types";
@@ -32,6 +32,7 @@ type ApproveResult = {
 };
 
 function CompaniesContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState(searchParams.get("status") ?? "");
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -150,8 +151,14 @@ function CompaniesContent() {
         empty={loaded && companies.length === 0}
       >
         {companies.map((c) => (
-          <tr key={c.id}>
-            <Td className="font-medium text-stone-900">{c.company_name}</Td>
+          <tr
+            key={c.id}
+            onClick={() => router.push(`/companies/${c.id}`)}
+            className="cursor-pointer transition-colors hover:bg-stone-50"
+          >
+            <Td className="font-medium text-stone-900 underline-offset-2 hover:underline">
+              {c.company_name}
+            </Td>
             <Td>
               <p>{c.admin_name}</p>
               <p className="text-xs text-stone-400">{c.admin_email}</p>
@@ -171,8 +178,11 @@ function CompaniesContent() {
             <Td>
               <StatusBadge status={c.status} />
             </Td>
-            <Td>
-              <div className="flex gap-2">
+            <Td className="!cursor-default" >
+              <div
+                className="flex gap-2"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {c.status === "pending" && (
                   <>
                     <Button
