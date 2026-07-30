@@ -91,6 +91,12 @@ class CompanyOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CompanyRegisterOut(CompanyOut):
+    """Same as CompanyOut, plus the temp password since registration is
+    auto-approved and there's no separate approval step to show it in."""
+    temp_password: str
+
+
 # ---------- Users ----------
 
 class UserCreate(BaseModel):
