@@ -65,6 +65,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def _allow_private_network(request, call_next):
+    """Chrome's Private Network Access blocks any request targeting a LAN IP
+    (e.g. testing via http://192.168.x.x instead of localhost) unless the
+    preflight response explicitly opts in with this header."""
+    response = await call_next(request)
+    if request.headers.get("access-control-request-private-network") == "true":
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
 # All API routes
 app.include_router(auth.router)
 app.include_router(dashboard.router)

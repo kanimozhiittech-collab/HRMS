@@ -63,7 +63,9 @@ export interface Payment {
 export interface Ticket {
   id: number;
   company_id: number;
-  raised_by: number;
+  raised_by: number | null;
+  raised_by_name: string | null;
+  raised_by_email: string | null;
   subject: string;
   description: string | null;
   priority: string;

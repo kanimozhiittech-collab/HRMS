@@ -238,13 +238,16 @@ export default function CompanyDetailPage() {
       </h2>
       <div className="mb-6">
         <Table
-          headers={["Invoice #", "Amount", "Method", "Paid On", "Status"]}
+          headers={["Invoice #", "Purchase / Transaction ID", "Amount", "Method", "Paid On", "Status"]}
           empty={payments.length === 0}
         >
           {payments.map((p) => (
             <tr key={p.id}>
               <Td className="font-mono text-xs font-medium text-stone-900">
                 {p.invoice_number}
+              </Td>
+              <Td className="font-mono text-xs text-stone-500">
+                {p.transaction_id ?? "—"}
               </Td>
               <Td className="font-medium tabular-nums">{fmtMoney(p.amount)}</Td>
               <Td className="capitalize">{p.payment_method ?? "—"}</Td>
@@ -262,12 +265,22 @@ export default function CompanyDetailPage() {
         Support Tickets ({tickets.length})
       </h2>
       <Table
-        headers={["Subject", "Priority", "Status", "Created", "Resolved"]}
+        headers={["Subject", "Raised By", "Priority", "Status", "Created", "Resolved"]}
         empty={tickets.length === 0}
       >
         {tickets.map((t) => (
           <tr key={t.id}>
             <Td className="font-medium text-stone-900">{t.subject}</Td>
+            <Td>
+              {t.raised_by_name ? (
+                <>
+                  <p>{t.raised_by_name}</p>
+                  <p className="text-xs text-stone-400">{t.raised_by_email}</p>
+                </>
+              ) : (
+                "—"
+              )}
+            </Td>
             <Td>
               <StatusBadge status={t.priority} />
             </Td>
