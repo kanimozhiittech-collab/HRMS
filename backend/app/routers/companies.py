@@ -270,3 +270,54 @@ def reactivate_company(
                   f"Reactivated {company.company_name}", user_id=admin.id, request=request)
     db.commit()
     return {"message": f"{company.company_name} is active again"}
+
+
+@router.delete("/{company_id}")
+def delete_company(
+    company_id: int,
+    request: Request,
+    admin: models.User = Depends(require_super_admin),
+    db: Session = Depends(get_db),
+):
+    """Permanently remove a company record and everything tied to it here
+    (subscription, invoices, tickets, notifications, the local admin login),
+    then best-effort ask the company-side HRMS app to remove its matching
+    tenant too (it refuses if that tenant has real employee data)."""
+    company = db.get(models.Company, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    name = company.company_name
+    admin_email = company.admin_email
+    user_ids = [u.id for u in db.query(models.User.id).filter(models.User.company_id == company_id).all()]
+    if user_ids:
+        db.query(models.AuditLog).filter(models.AuditLog.user_id.in_(user_ids)).update(
+            {"user_id": None}, synchronize_session=False
+        )
+    db.query(models.Payment).filter(models.Payment.company_id == company_id).delete(synchronize_session=False)
+    db.query(models.SupportTicket).filter(models.SupportTicket.company_id == company_id).delete(synchronize_session=False)
+    db.query(models.Notification).filter(models.Notification.company_id == company_id).delete(synchronize_session=False)
+    db.query(models.Subscription).filter(models.Subscription.company_id == company_id).delete(synchronize_session=False)
+    db.query(models.User).filter(models.User.company_id == company_id).delete(synchronize_session=False)
+
+    add_audit_log(db, "delete_company", "companies",
+                  f"Deleted {name}", user_id=admin.id, request=request)
+    db.delete(company)
+    db.commit()
+
+    tenant_note = None
+    try:
+        resp = requests.delete(
+            f"{COMPANY_HRMS_URL}/api/provisioning/companies",
+            params={"admin_email": admin_email},
+            headers={"X-Provision-Secret": PROVISION_SECRET},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            tenant_note = resp.json().get("status")
+        else:
+            tenant_note = f"tenant cleanup failed ({resp.status_code}): {resp.text[:200]}"
+    except requests.RequestException as e:
+        tenant_note = f"could not reach company HRMS app: {e}"
+
+    return {"message": f"{name} deleted", "tenant_cleanup": tenant_note}
