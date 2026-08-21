@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { api, daysLeft, fmtDate, fmtDateTime, fmtMoney } from "@/lib/api";
 import type {
   Company,
@@ -41,6 +41,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function CompanyDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const companyId = Number(params.id);
 
   const [company, setCompany] = useState<Company | null>(null);
@@ -51,6 +52,7 @@ export default function CompanyDetailPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [approved, setApproved] = useState<ApproveResult | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -89,6 +91,19 @@ export default function CompanyDetailPage() {
       setError(err instanceof Error ? err.message : "Action failed");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const deleteCompany = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await api(`/companies/${companyId}`, { method: "DELETE" });
+      router.push("/companies");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+      setBusy(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -149,9 +164,41 @@ export default function CompanyDetailPage() {
                 Reactivate
               </Button>
             )}
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Trash2 size={14} /> Delete
+              </span>
+            </Button>
           </div>
         }
       />
+
+      {confirmDelete && (
+        <Modal
+          title={`Delete ${company.company_name}?`}
+          onClose={() => setConfirmDelete(false)}
+        >
+          <p className="text-sm text-stone-600">
+            This permanently removes the company, its subscription, invoices,
+            and support tickets here, and disables its admin login. This
+            doesn&apos;t touch the company&apos;s own data in the HRMS app —
+            that stays until removed there separately. This can&apos;t be
+            undone.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" disabled={busy} onClick={deleteCompany}>
+              {busy ? "Deleting…" : "Delete Company"}
+            </Button>
+          </div>
+        </Modal>
+      )}
       <ErrorNote message={error} />
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
