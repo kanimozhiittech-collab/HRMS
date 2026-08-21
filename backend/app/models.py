@@ -178,7 +178,12 @@ class SupportTicket(Base):
 
     id = Column(Integer, primary_key=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
-    raised_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable: tickets raised from the company-side app (hrms-app) by an
+    # hr_manager/employee login have no matching row in this app's own `users`
+    # table (only the company_admin does) — raised_by_name/email cover that case.
+    raised_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    raised_by_name = Column(String(120))
+    raised_by_email = Column(String(200))
     subject = Column(String(200), nullable=False)
     description = Column(Text)
     priority = Column(Enum(TicketPriority, name="ticket_priority"),

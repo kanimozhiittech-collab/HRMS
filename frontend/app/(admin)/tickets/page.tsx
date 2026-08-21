@@ -77,6 +77,7 @@ export default function TicketsPage() {
         headers={[
           "Subject",
           "Company",
+          "Raised By",
           "Priority",
           "Status",
           "Created",
@@ -97,6 +98,16 @@ export default function TicketsPage() {
             <Td>
               {companies.get(t.company_id)?.company_name ??
                 `Company #${t.company_id}`}
+            </Td>
+            <Td>
+              {t.raised_by_name ? (
+                <>
+                  <p>{t.raised_by_name}</p>
+                  <p className="text-xs text-stone-400">{t.raised_by_email}</p>
+                </>
+              ) : (
+                "—"
+              )}
             </Td>
             <Td>
               <select

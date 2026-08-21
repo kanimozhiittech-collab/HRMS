@@ -13,6 +13,7 @@ from typing import Optional
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -32,9 +33,11 @@ def _provision_tenant(company: "models.Company", admin_name: str, temp_password:
         resp = requests.post(
             f"{COMPANY_HRMS_URL}/api/provisioning/companies",
             json={
+                "company_id": company.id,
                 "company_name": company.company_name,
                 "admin_name": admin_name,
                 "admin_email": company.admin_email,
+                "phone": company.phone,
                 "temp_password": temp_password,
             },
             headers={"X-Provision-Secret": PROVISION_SECRET},
@@ -151,12 +154,20 @@ def register_company(body: schemas.CompanyRegister, db: Session = Depends(get_db
 @router.get("", response_model=list[schemas.CompanyOut])
 def list_companies(
     status: Optional[str] = None,
+    q: Optional[str] = None,
     admin: models.User = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.Company)
     if status:
         query = query.filter(models.Company.status == status)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(sa.or_(
+            models.Company.company_name.ilike(like),
+            models.Company.admin_name.ilike(like),
+            models.Company.admin_email.ilike(like),
+        ))
     return query.order_by(models.Company.created_at.desc()).all()
 
 

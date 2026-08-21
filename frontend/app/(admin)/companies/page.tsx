@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { api, fmtDate } from "@/lib/api";
 import type { Company, Plan } from "@/lib/types";
 import {
@@ -35,6 +35,7 @@ function CompaniesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState(searchParams.get("status") ?? "");
+  const [search, setSearch] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Map<number, Plan>>(new Map());
   const [error, setError] = useState("");
@@ -53,10 +54,14 @@ function CompaniesContent() {
     plan_id: "",
   });
 
-  const load = useCallback(async (status: string) => {
+  const load = useCallback(async (status: string, q: string) => {
     try {
+      const params = new URLSearchParams();
+      if (status) params.set("status", status);
+      if (q) params.set("q", q);
+      const qs = params.toString();
       const [comps, planList] = await Promise.all([
-        api<Company[]>(`/companies${status ? `?status=${status}` : ""}`),
+        api<Company[]>(`/companies${qs ? `?${qs}` : ""}`),
         api<Plan[]>("/plans"),
       ]);
       setCompanies(comps);
@@ -68,8 +73,9 @@ function CompaniesContent() {
   }, []);
 
   useEffect(() => {
-    load(tab);
-  }, [tab, load]);
+    const timer = setTimeout(() => load(tab, search), search ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [tab, search, load]);
 
   const action = async (companyId: number, verb: string) => {
     setError("");
@@ -79,7 +85,7 @@ function CompaniesContent() {
         method: "POST",
       });
       if (verb === "approve") setApproved(res);
-      await load(tab);
+      await load(tab, search);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
     } finally {
@@ -136,6 +142,15 @@ function CompaniesContent() {
         }
       />
       <ErrorNote message={error} />
+      <div className="mb-3 relative w-full max-w-xs">
+        <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+        <input
+          className={`${inputCls} pl-8`}
+          placeholder="Search company, admin name or email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       <Table

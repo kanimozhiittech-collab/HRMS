@@ -182,7 +182,9 @@ class TicketUpdate(BaseModel):
 class TicketOut(BaseModel):
     id: int
     company_id: int
-    raised_by: int
+    raised_by: Optional[int] = None
+    raised_by_name: Optional[str] = None
+    raised_by_email: Optional[str] = None
     subject: str
     description: Optional[str] = None
     priority: str
@@ -191,6 +193,18 @@ class TicketOut(BaseModel):
     resolved_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+class ExternalTicketCreate(BaseModel):
+    """Raised from the company-side app (hrms-app) by any logged-in user,
+    not just the company_admin — authenticated via a shared secret, not a
+    Super Admin JWT, since that user has no login here."""
+    company_id: int
+    raised_by_name: str
+    raised_by_email: str
+    subject: str
+    description: Optional[str] = None
+    priority: str = "medium"
 
 
 # ---------- Notifications ----------
