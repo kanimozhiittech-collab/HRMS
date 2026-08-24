@@ -59,7 +59,7 @@ export default function DashboardPage() {
         <Card>
           <p className="text-sm font-medium text-stone-500">Total Companies</p>
           <div className="mt-2 flex items-end gap-3">
-            <span className="text-6xl font-semibold tracking-tight text-stone-900">
+            <span className="text-4xl font-semibold tracking-tight text-stone-900 md:text-6xl">
               {data.total_companies}
             </span>
             <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             Revenue This Month
           </p>
           <div className="mt-2 flex items-end gap-3">
-            <span className="text-6xl font-semibold tracking-tight text-stone-900">
+            <span className="text-4xl font-semibold tracking-tight text-stone-900 md:text-6xl">
               {fmtMoney(data.monthly_revenue)}
             </span>
           </div>

@@ -35,6 +35,10 @@ function CompaniesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState(searchParams.get("status") ?? "");
+
+  useEffect(() => {
+    setTab(searchParams.get("status") ?? "");
+  }, [searchParams]);
   const [search, setSearch] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Map<number, Plan>>(new Map());
