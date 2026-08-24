@@ -29,6 +29,10 @@ function SubscriptionsContent() {
   const [tab, setTab] = useState(
     searchParams.get("expiring") ? "expiring" : "",
   );
+
+  useEffect(() => {
+    setTab(searchParams.get("expiring") ? "expiring" : "");
+  }, [searchParams]);
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [companies, setCompanies] = useState<Map<number, Company>>(new Map());
   const [plans, setPlans] = useState<Map<number, Plan>>(new Map());

@@ -18,6 +18,7 @@ import {
   ScrollText,
   Settings,
   UsersRound,
+  X,
 } from "lucide-react";
 import { clearSession } from "@/lib/api";
 
@@ -99,7 +100,13 @@ function menuGroups(counts: SidebarCounts) {
   ];
 }
 
-export default function Sidebar({ counts }: { counts: SidebarCounts }) {
+export default function Sidebar({
+  counts,
+  onClose,
+}: {
+  counts: SidebarCounts;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -110,8 +117,8 @@ export default function Sidebar({ counts }: { counts: SidebarCounts }) {
 
   return (
     <>
-      {/* Dark icon rail */}
-      <aside className="flex w-16 shrink-0 flex-col items-center justify-between rounded-3xl bg-stone-900 py-5 shadow-lg">
+      {/* Dark icon rail — hidden on mobile */}
+      <aside className="hidden w-16 shrink-0 flex-col items-center justify-between rounded-3xl bg-stone-900 py-5 shadow-lg md:flex">
         <div className="flex flex-col items-center gap-1">
           <Link
             href="/dashboard"
@@ -152,7 +159,7 @@ export default function Sidebar({ counts }: { counts: SidebarCounts }) {
       </aside>
 
       {/* Light menu panel */}
-      <aside className="flex w-72 shrink-0 flex-col overflow-y-auto rounded-l-3xl border-r border-stone-200 bg-stone-100 p-5">
+      <aside className="flex w-72 shrink-0 flex-col overflow-y-auto rounded-l-3xl border-r border-stone-200 bg-stone-100 p-5 md:rounded-l-3xl">
         {/* Brand */}
         <div className="mb-6">
           <div className="flex items-center justify-between gap-3">
@@ -162,13 +169,24 @@ export default function Sidebar({ counts }: { counts: SidebarCounts }) {
               alt="NYGROW Digital Pvt. Ltd."
               className="h-9 w-auto"
             />
-            <button
-              onClick={logout}
-              title="Logout"
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700"
-            >
-              <LogOut size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={logout}
+                title="Logout"
+                className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+              >
+                <LogOut size={16} />
+              </button>
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  title="Close menu"
+                  className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700 md:hidden"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           </div>
           <p className="mt-2 flex items-center gap-1 text-xs font-medium text-stone-500">
             NYGROW HRM

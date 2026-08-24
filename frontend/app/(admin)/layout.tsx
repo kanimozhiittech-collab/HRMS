@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Menu, Asterisk } from "lucide-react";
 import Sidebar, { SidebarCounts } from "@/components/Sidebar";
 import { api, getToken } from "@/lib/api";
 import type { Dashboard, Notification } from "@/lib/types";
@@ -13,6 +14,7 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [counts, setCounts] = useState<SidebarCounts>({
     pending: 0,
     tickets: 0,
@@ -45,12 +47,48 @@ export default function AdminLayout({
     })();
   }, [ready, pathname]);
 
+  // Close drawer on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
   if (!ready) return null;
 
   return (
-    <div className="flex h-screen gap-3 bg-stone-300 p-3">
-      <Sidebar counts={counts} />
-      <main className="flex-1 overflow-y-auto rounded-3xl bg-stone-50 p-8 shadow-sm">
+    <div className="flex h-screen flex-col bg-stone-300 md:flex-row md:gap-3 md:p-3">
+      {/* Mobile top bar */}
+      <header className="flex shrink-0 items-center gap-3 bg-stone-900 px-4 py-3 md:hidden">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-800 hover:text-white"
+          aria-label="Open menu"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="flex items-center gap-2 text-white">
+          <Asterisk size={20} strokeWidth={2.5} />
+          <span className="text-sm font-semibold tracking-wide">NYGROW HRM</span>
+        </div>
+      </header>
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — always visible on desktop, drawer on mobile */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 flex transition-transform duration-300 md:relative md:inset-auto md:z-auto md:translate-x-0 md:transition-none ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:flex`}
+      >
+        <Sidebar counts={counts} onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      <main className="flex-1 overflow-y-auto bg-stone-50 p-4 md:rounded-3xl md:p-8 md:shadow-sm">
         {children}
       </main>
     </div>
