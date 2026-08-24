@@ -41,8 +41,9 @@ def update_settings(
         else:
             db.add(models.Setting(setting_key=key, setting_value=value))
 
+    readable_keys = [key.replace("_", " ") for key in body.keys()]
     add_audit_log(db, "update_settings", "settings",
-                  f"Updated settings: {', '.join(body.keys())}",
+                  f"Updated settings: {', '.join(readable_keys)}",
                   user_id=admin.id, request=request)
     db.commit()
     return db.query(models.Setting).order_by(models.Setting.setting_key).all()

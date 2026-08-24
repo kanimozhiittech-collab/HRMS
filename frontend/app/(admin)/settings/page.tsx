@@ -11,6 +11,13 @@ import {
   PageHeader,
 } from "@/components/ui";
 
+function humanize(key: string) {
+  return key
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -92,7 +99,7 @@ export default function SettingsPage() {
             >
               <div className="min-w-64 flex-1">
                 <p className="text-sm font-medium text-stone-900">
-                  {s.setting_key}
+                  {humanize(s.setting_key)}
                 </p>
                 {s.description && (
                   <p className="mt-0.5 text-xs text-stone-400">
