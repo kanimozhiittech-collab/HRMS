@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem C:\\\\Users\\\\xmedia\\\\Documents\\\\hrms-app\\\\backend -Recurse -Depth 2 -Directory | Select-Object -ExpandProperty FullName; \"\"; Get-ChildItem C:\\\\Users\\\\xmedia\\\\Documents\\\\hrms-app\\\\frontend -Depth 1 -Directory | Select-Object -ExpandProperty FullName)",
+      "PowerShell(Get-Content C:\\\\Users\\\\xmedia\\\\Documents\\\\HRMS\\\\backend\\\\.gitignore; \"---FRONTEND---\"; Get-Content C:\\\\Users\\\\xmedia\\\\Documents\\\\HRMS\\\\frontend\\\\.gitignore)",
+      "PowerShell($env:DATABASE_URL = \"postgresql://neondb_owner:npg_exZE8qom3LJK@ep-lingering-star-axgkg4le-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require\"; cd C:\\\\Users\\\\xmedia\\\\Documents\\\\HRMS\\\\backend; .\\\\venv\\\\Scripts\\\\python.exe -m alembic upgrade head 2>&1 | Out-String)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell($env:DATABASE_URL = \"postgresql://neondb_owner:npg_exZE8qom3LJK@ep-lingering-star-axgkg4le-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require\"; cd C:\\\\Users\\\\xmedia\\\\Documents\\\\HRMS\\\\backend; .\\\\venv\\\\Scripts\\\\python.exe seed.py; .\\\\venv\\\\Scripts\\\\python.exe seed_demo.py 2>&1 | Select-Object -Last 6 | Out-String)",
+      "PowerShell($bytes = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Fill\\($bytes\\); \\($bytes | ForEach-Object { $_.ToString\\('x2'\\) }\\) -join '')",
+      "PowerShell($found = $false; foreach \\($i in 1..10\\) { Start-Sleep -Seconds 30; try { $r = Invoke-RestMethod -Uri \"https://hrms-8euv.vercel.app/api/backend/env-check\" -TimeoutSec 20; \"TRY ${i}: db_host=$\\($r.db_host\\), is_neon=$\\($r.is_neon\\)\"; $found = $true; break } catch { \"TRY ${i}: waiting \\($\\([int]$_.Exception.Response.StatusCode\\)\\)\" } }; if \\(-not $found\\) { \"env-check not reachable after 5 min\" })",
+      "PowerShell($done = $false; foreach \\($i in 1..10\\) { Start-Sleep -Seconds 30; try { $env2 = Invoke-RestMethod -Uri \"https://hrms-8euv.vercel.app/api/backend/env-check\" -TimeoutSec 20; if \\(-not $env2.is_neon\\) { \"TRY ${i}: db_host=$\\($env2.db_host\\) \\(not neon yet\\)\"; continue }; $login = Invoke-RestMethod -Uri \"https://hrms-8euv.vercel.app/api/backend/auth/login\" -Method Post -ContentType \"application/json\" -Body '{\"email\":\"superadmin@hrms.com\",\"password\":\"Admin@123\"}' -TimeoutSec 30; $h = @{Authorization = \"Bearer $\\($login.access_token\\)\"}; $dash = Invoke-RestMethod -Uri \"https://hrms-8euv.vercel.app/api/backend/dashboard\" -Headers $h -TimeoutSec 30; \"TRY ${i}: ALL OK — neon connected, login works, companies=$\\($dash.total_companies\\), pending=$\\($dash.pending_companies\\)\"; $done = $true; break } catch { \"TRY ${i}: $\\($_.Exception.Message\\)\" } }; if \\(-not $done\\) { \"Still failing — need Vercel logs\" })",
+      "Bash(timeout 60 bash -c 'until curl -sf http://localhost:3000/ >/dev/null 2>&1; do sleep 1; done')",
+      "Bash(curl -s http://localhost:9090/)",
+      "Read(//c/Users/xmedia/Documents/hrms-app/frontend/**)",
+      "Bash(node \"/c/Users/xmedia/AppData/Local/Temp/claude/C--Users-xmedia-Documents-HRMS/142c7f6d-4de8-45bd-93e4-84c884a8c083/scratchpad/check-settings-direct.js\")",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(node \"/c/Users/xmedia/AppData/Local/Temp/claude/C--Users-xmedia-Documents-HRMS/142c7f6d-4de8-45bd-93e4-84c884a8c083/scratchpad/verify-settings-grid.js\")",
+      "Bash(vercel --version)"
+    ]
+  }
+}
