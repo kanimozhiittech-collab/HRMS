@@ -108,7 +108,7 @@ function CompaniesContent() {
           company_name: addForm.company_name,
           admin_name: addForm.admin_name,
           admin_email: addForm.admin_email,
-          phone: addForm.phone || null,
+          phone: addForm.phone,
           plan_id: Number(addForm.plan_id),
         }),
       });
@@ -289,11 +289,16 @@ function CompaniesContent() {
                   onChange={setAdd("admin_name")}
                 />
               </Field>
-              <Field label="Phone (optional)">
+              <Field label="Phone">
                 <input
+                  required
+                  type="tel"
+                  inputMode="numeric"
                   className={inputCls}
                   value={addForm.phone}
-                  onChange={setAdd("phone")}
+                  onChange={(e) =>
+                    setAddForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "") }))
+                  }
                 />
               </Field>
             </div>

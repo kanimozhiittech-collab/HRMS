@@ -7,7 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 # ---------- Auth ----------
@@ -70,8 +70,15 @@ class CompanyRegister(BaseModel):
     company_name: str
     admin_name: str
     admin_email: EmailStr
-    phone: Optional[str] = None
+    phone: str
     plan_id: int
+
+    @field_validator("phone")
+    @classmethod
+    def phone_must_be_digits(cls, v: str) -> str:
+        if not v or not v.isdigit():
+            raise ValueError("Phone must contain digits only")
+        return v
 
 
 class CompanyOut(BaseModel):

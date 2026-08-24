@@ -53,7 +53,7 @@ export default function RegisterPage() {
           company_name: companyName,
           admin_name: adminName,
           admin_email: adminEmail,
-          phone: phone || null,
+          phone: phone,
           plan_id: planId,
         }),
       });
@@ -187,11 +187,14 @@ export default function RegisterPage() {
                 placeholder="senthil@company.com"
               />
             </Field>
-            <Field label="Phone (optional)">
+            <Field label="Phone">
               <input
+                required
+                type="tel"
+                inputMode="numeric"
                 className={inputCls}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 placeholder="9876543210"
               />
             </Field>
