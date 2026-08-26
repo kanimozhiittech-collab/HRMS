@@ -187,14 +187,17 @@ export default function RegisterPage() {
                 placeholder="senthil@company.com"
               />
             </Field>
-            <Field label="Phone">
+            <Field label="Phone (10 digits)">
               <input
                 required
                 type="tel"
                 inputMode="numeric"
+                maxLength={10}
+                pattern="\d{10}"
+                title="Enter exactly 10 digits"
                 className={inputCls}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 placeholder="9876543210"
               />
             </Field>

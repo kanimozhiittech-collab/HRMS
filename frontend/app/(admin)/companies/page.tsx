@@ -289,15 +289,18 @@ function CompaniesContent() {
                   onChange={setAdd("admin_name")}
                 />
               </Field>
-              <Field label="Phone">
+              <Field label="Phone (10 digits)">
                 <input
                   required
                   type="tel"
                   inputMode="numeric"
+                  maxLength={10}
+                  pattern="\d{10}"
+                  title="Enter exactly 10 digits"
                   className={inputCls}
                   value={addForm.phone}
                   onChange={(e) =>
-                    setAddForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "") }))
+                    setAddForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
                   }
                 />
               </Field>

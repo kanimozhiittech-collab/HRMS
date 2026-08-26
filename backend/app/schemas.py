@@ -78,6 +78,8 @@ class CompanyRegister(BaseModel):
     def phone_must_be_digits(cls, v: str) -> str:
         if not v or not v.isdigit():
             raise ValueError("Phone must contain digits only")
+        if len(v) != 10:
+            raise ValueError("Phone must be exactly 10 digits")
         return v
 
 
