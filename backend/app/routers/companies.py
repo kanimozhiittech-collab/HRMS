@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,7 @@ from app.config import COMPANY_HRMS_URL, PROVISION_SECRET
 from app.database import get_db
 from app.security import hash_password, require_super_admin
 from app.utils import (add_audit_log, add_notification, generate_temp_password,
-                       get_setting, send_email)
+                       get_setting, save_upload, send_email)
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
@@ -185,6 +185,70 @@ def get_company(
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
+
+
+@router.post("/{company_id}/logo", response_model=schemas.CompanyOut)
+def upload_company_logo(
+    company_id: int,
+    file: UploadFile,
+    admin: models.User = Depends(require_super_admin),
+    db: Session = Depends(get_db),
+):
+    company = db.get(models.Company, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    company.logo_url = save_upload(file, "company-logos")
+    db.commit()
+    db.refresh(company)
+    return company
+
+
+@router.post("/{company_id}/reset-admin-password")
+def reset_admin_password(
+    company_id: int,
+    request: Request,
+    admin: models.User = Depends(require_super_admin),
+    db: Session = Depends(get_db),
+):
+    """Resets the company admin's login password — both here (our own record
+    of it) and in the company-side HRMS app, since that's where the login the
+    admin actually uses day to day lives. Without the second call this would
+    silently do nothing from the admin's point of view."""
+    company = db.get(models.Company, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    company_admin = (
+        db.query(models.User)
+        .filter(models.User.company_id == company_id, models.User.role == models.UserRole.company_admin)
+        .first()
+    )
+    if not company_admin:
+        raise HTTPException(404, "This company has no admin login yet")
+
+    temp_password = generate_temp_password()
+    try:
+        resp = requests.put(
+            f"{COMPANY_HRMS_URL}/api/provisioning/companies/{company_id}/admin-password",
+            json={"new_password": temp_password},
+            headers={"X-Provision-Secret": PROVISION_SECRET},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        raise HTTPException(502, f"Could not reset the password in the company HRMS app: {e}")
+
+    company_admin.password_hash = hash_password(temp_password)
+    company_admin.is_temp_password = True
+    add_audit_log(db, "reset_admin_password", "companies",
+                  f"Reset admin password for {company.company_name}", user_id=admin.id, request=request)
+    db.commit()
+
+    return {
+        "message": f"Password reset for {company_admin.email}",
+        "admin_email": company_admin.email,
+        # Shown here only because email is not connected yet. Remove in production.
+        "temp_password": temp_password,
+    }
 
 
 # ---------- Phase 4: approve (the full onboarding chain) ----------

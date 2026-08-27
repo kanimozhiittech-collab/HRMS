@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { api, daysLeft, fmtDate, fmtDateTime, fmtMoney } from "@/lib/api";
+import { api, apiUpload, daysLeft, fmtDate, fmtDateTime, fmtMoney } from "@/lib/api";
 import type {
   Company,
   Payment,
@@ -25,6 +25,12 @@ import {
 type ApproveResult = {
   message: string;
   company_admin_email: string;
+  temp_password: string;
+};
+
+type ResetPasswordResult = {
+  message: string;
+  admin_email: string;
   temp_password: string;
 };
 
@@ -53,6 +59,9 @@ export default function CompanyDetailPage() {
   const [busy, setBusy] = useState(false);
   const [approved, setApproved] = useState<ApproveResult | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [resetResult, setResetResult] = useState<ResetPasswordResult | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -107,6 +116,33 @@ export default function CompanyDetailPage() {
     }
   };
 
+  const uploadLogo = async (file: File) => {
+    setError("");
+    setLogoBusy(true);
+    try {
+      const updated = await apiUpload<Company>(`/companies/${companyId}/logo`, file);
+      setCompany(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Logo upload failed");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const resetAdminPassword = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      const res = await api<ResetPasswordResult>(`/companies/${companyId}/reset-admin-password`, { method: "POST" });
+      setResetResult(res);
+      setConfirmReset(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Password reset failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (error && !company) return <ErrorNote message={error} />;
   if (!company) return <p className="text-sm text-stone-400">Loading…</p>;
 
@@ -123,7 +159,37 @@ export default function CompanyDetailPage() {
       </Link>
 
       <PageHeader
-        title={company.company_name}
+        title={
+          <span className="inline-flex items-center gap-3">
+            {company.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={company.logo_url}
+                alt={company.company_name}
+                className="h-10 w-10 shrink-0 rounded-xl object-cover ring-1 ring-stone-200"
+              />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-200 text-sm font-semibold text-stone-500">
+                {company.company_name.charAt(0).toUpperCase()}
+              </span>
+            )}
+            {company.company_name}
+            <label className="cursor-pointer text-xs font-medium text-stone-500 underline hover:text-stone-900">
+              {logoBusy ? "Uploading…" : "Change logo"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={logoBusy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadLogo(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </span>
+        }
         subtitle={`Registered ${fmtDate(company.created_at)}`}
         actions={
           <div className="flex items-center gap-2">
@@ -199,14 +265,65 @@ export default function CompanyDetailPage() {
           </div>
         </Modal>
       )}
+
+      {confirmReset && (
+        <Modal
+          title={`Reset password for ${company.admin_name}?`}
+          onClose={() => setConfirmReset(false)}
+        >
+          <p className="text-sm text-stone-600">
+            This generates a new temporary password and replaces their current
+            login — both here and in the company&apos;s own HRMS app, which is
+            where they actually sign in. They&apos;ll need the new password to
+            log in again.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirmReset(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" disabled={busy} onClick={resetAdminPassword}>
+              {busy ? "Resetting…" : "Reset Password"}
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {resetResult && (
+        <Modal title="Password Reset" onClose={() => setResetResult(null)}>
+          <p className="mb-4 text-sm text-stone-600">{resetResult.message}</p>
+          <div className="rounded-xl bg-stone-100 p-4 text-sm">
+            <p>
+              <span className="font-medium text-stone-500">Admin email: </span>
+              {resetResult.admin_email}
+            </p>
+            <p className="mt-1">
+              <span className="font-medium text-stone-500">
+                New temporary password:{" "}
+              </span>
+              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+                {resetResult.temp_password}
+              </code>
+            </p>
+          </div>
+          <p className="mt-3 text-xs text-stone-400">
+            Shown here because email sending is not connected yet. The admin
+            must change this password on first login.
+          </p>
+        </Modal>
+      )}
       <ErrorNote message={error} />
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         {/* Company details */}
         <Card>
-          <h2 className="mb-2 text-lg font-semibold text-stone-900">
-            Company Details
-          </h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-stone-900">
+              Company Details
+            </h2>
+            <Button variant="ghost" disabled={busy} onClick={() => setConfirmReset(true)}>
+              Reset Admin Password
+            </Button>
+          </div>
           <div className="divide-y divide-stone-100">
             <InfoRow label="Admin name" value={company.admin_name} />
             <InfoRow label="Admin email" value={company.admin_email} />

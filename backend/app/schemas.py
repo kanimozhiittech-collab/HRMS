@@ -102,6 +102,7 @@ class CompanyOut(BaseModel):
     pan_number: Optional[str] = None
     address: Optional[str] = None
     locations: Optional[str] = None
+    logo_url: Optional[str] = None
     plan_id: int
     database_type: Optional[str] = None
     database_name: Optional[str] = None

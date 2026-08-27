@@ -19,6 +19,7 @@ export interface Company {
   pan_number: string | null;
   address: string | null;
   locations: string | null;
+  logo_url: string | null;
   plan_id: number;
   database_type: string | null;
   database_name: string | null;

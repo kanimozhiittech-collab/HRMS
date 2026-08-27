@@ -98,6 +98,7 @@ class Company(Base):
     pan_number = Column(String(20))
     address = Column(String(300))
     locations = Column(String(300))
+    logo_url = Column(String(500))
     plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
     database_type = Column(Enum(DatabaseType, name="database_type"),
                            default=DatabaseType.shared)

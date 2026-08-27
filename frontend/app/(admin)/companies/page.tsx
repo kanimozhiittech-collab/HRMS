@@ -2,8 +2,8 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
-import { api, fmtDate } from "@/lib/api";
-import type { Company, Plan } from "@/lib/types";
+import { api, apiUpload, daysLeft, fmtDate } from "@/lib/api";
+import type { Company, Plan, Subscription } from "@/lib/types";
 import {
   Button,
   ErrorNote,
@@ -48,6 +48,7 @@ function CompaniesContent() {
   const [search, setSearch] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Map<number, Plan>>(new Map());
+  const [subsByCompany, setSubsByCompany] = useState<Map<number, Subscription>>(new Map());
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [approved, setApproved] = useState<ApproveResult | null>(null);
@@ -68,6 +69,7 @@ function CompaniesContent() {
     address: "",
     locations: "",
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const load = useCallback(async (status: string, q: string) => {
     try {
@@ -75,12 +77,14 @@ function CompaniesContent() {
       if (status) params.set("status", status);
       if (q) params.set("q", q);
       const qs = params.toString();
-      const [comps, planList] = await Promise.all([
+      const [comps, planList, subList] = await Promise.all([
         api<Company[]>(`/companies${qs ? `?${qs}` : ""}`),
         api<Plan[]>("/plans"),
+        api<Subscription[]>("/subscriptions?status=active"),
       ]);
       setCompanies(comps);
       setPlans(new Map(planList.map((p) => [p.id, p])));
+      setSubsByCompany(new Map(subList.map((s) => [s.company_id, s])));
       setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -113,7 +117,7 @@ function CompaniesContent() {
     setError("");
     setAddBusy(true);
     try {
-      const result = await api<{ company_name: string; admin_email: string; temp_password: string }>(
+      const result = await api<{ id: number; company_name: string; admin_email: string; temp_password: string }>(
         "/companies/register",
         {
           method: "POST",
@@ -130,6 +134,13 @@ function CompaniesContent() {
           }),
         }
       );
+      if (logoFile) {
+        try {
+          await apiUpload(`/companies/${result.id}/logo`, logoFile);
+        } catch {
+          /* logo upload failure shouldn't block company creation */
+        }
+      }
       setShowAdd(false);
       setAddForm({
         company_name: "",
@@ -142,6 +153,7 @@ function CompaniesContent() {
         address: "",
         locations: "",
       });
+      setLogoFile(null);
       setAdded({
         company_name: result.company_name,
         admin_email: result.admin_email,
@@ -189,6 +201,7 @@ function CompaniesContent() {
           "Company",
           "Admin",
           "Plan",
+          "Plan Expiry",
           "Database",
           "Registered",
           "Status",
@@ -203,13 +216,47 @@ function CompaniesContent() {
             className="cursor-pointer transition-colors hover:bg-stone-50"
           >
             <Td className="font-medium text-stone-900 underline-offset-2 hover:underline">
-              {c.company_name}
+              <div className="flex items-center gap-2">
+                {c.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={c.logo_url}
+                    alt={c.company_name}
+                    className="h-7 w-7 shrink-0 rounded-lg object-cover ring-1 ring-stone-200"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-200 text-xs font-semibold text-stone-500">
+                    {c.company_name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                {c.company_name}
+              </div>
             </Td>
             <Td>
               <p>{c.admin_name}</p>
               <p className="text-xs text-stone-400">{c.admin_email}</p>
             </Td>
             <Td>{plans.get(c.plan_id)?.plan_name ?? `#${c.plan_id}`}</Td>
+            <Td>
+              {(() => {
+                const sub = subsByCompany.get(c.id);
+                if (!sub) return "—";
+                const left = daysLeft(sub.end_date);
+                return (
+                  <span
+                    className={
+                      left <= 3
+                        ? "font-semibold text-red-600"
+                        : left <= 7
+                          ? "font-medium text-amber-600"
+                          : ""
+                    }
+                  >
+                    {fmtDate(sub.end_date)} ({left}d)
+                  </span>
+                );
+              })()}
+            </Td>
             <Td>
               {c.database_name ? (
                 <>
@@ -326,7 +373,6 @@ function CompaniesContent() {
           <form onSubmit={addCompany} className="flex flex-col gap-4">
             <Field label="Company name">
               <input
-                required
                 className={inputCls}
                 value={addForm.company_name}
                 onChange={setAdd("company_name")}
@@ -336,7 +382,6 @@ function CompaniesContent() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Admin name">
                 <input
-                  required
                   className={inputCls}
                   value={addForm.admin_name}
                   onChange={setAdd("admin_name")}
@@ -344,7 +389,6 @@ function CompaniesContent() {
               </Field>
               <Field label="Phone (10 digits)">
                 <input
-                  required
                   type="tel"
                   inputMode="numeric"
                   maxLength={10}
@@ -361,7 +405,6 @@ function CompaniesContent() {
             <Field label="Admin email">
               <input
                 type="email"
-                required
                 className={inputCls}
                 value={addForm.admin_email}
                 onChange={(e) =>
@@ -371,7 +414,6 @@ function CompaniesContent() {
             </Field>
             <Field label="Plan">
               <select
-                required
                 className={inputCls}
                 value={addForm.plan_id}
                 onChange={setAdd("plan_id")}
@@ -419,12 +461,26 @@ function CompaniesContent() {
                 onChange={setAdd("locations")}
               />
             </Field>
+            <Field label="Company logo (optional)">
+              <input
+                type="file"
+                accept="image/*"
+                className={inputCls}
+                onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+              />
+            </Field>
             <p className="text-xs text-stone-400">
               Company is created and activated immediately — the subscription
               and admin login are set up right away, no separate approval step.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setShowAdd(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowAdd(false);
+                  setLogoFile(null);
+                }}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={addBusy}>

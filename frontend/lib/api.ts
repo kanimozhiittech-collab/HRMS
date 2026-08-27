@@ -67,6 +67,41 @@ export async function api<T = unknown>(
   return res.json() as Promise<T>;
 }
 
+export async function apiUpload<T = unknown>(
+  path: string,
+  file: File,
+): Promise<T> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let detail = `Request failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.detail) {
+        detail =
+          typeof body.detail === "string"
+            ? body.detail
+            : JSON.stringify(body.detail);
+      }
+    } catch {
+      /* keep default message */
+    }
+    throw new Error(detail);
+  }
+  return res.json() as Promise<T>;
+}
+
 export const fmtMoney = (v: number | string | null | undefined) =>
   "₹" + new Intl.NumberFormat("en-IN").format(Number(v ?? 0));
 

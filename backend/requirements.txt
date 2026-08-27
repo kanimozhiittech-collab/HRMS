@@ -8,3 +8,5 @@ bcrypt
 python-dotenv
 email-validator
 requests
+python-multipart
+vercel_blob==0.4.2
