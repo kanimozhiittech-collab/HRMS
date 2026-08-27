@@ -72,6 +72,10 @@ class CompanyRegister(BaseModel):
     admin_email: EmailStr
     phone: str
     plan_id: int
+    gst_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    address: Optional[str] = None
+    locations: Optional[str] = None
 
     @field_validator("phone")
     @classmethod
@@ -94,6 +98,10 @@ class CompanyOut(BaseModel):
     admin_name: str
     admin_email: str
     phone: Optional[str] = None
+    gst_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    address: Optional[str] = None
+    locations: Optional[str] = None
     plan_id: int
     database_type: Optional[str] = None
     database_name: Optional[str] = None

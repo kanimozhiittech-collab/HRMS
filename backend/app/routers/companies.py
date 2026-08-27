@@ -132,6 +132,10 @@ def register_company(body: schemas.CompanyRegister, db: Session = Depends(get_db
         admin_name=body.admin_name,
         admin_email=body.admin_email,
         phone=body.phone,
+        gst_number=body.gst_number,
+        pan_number=body.pan_number,
+        address=body.address,
+        locations=body.locations,
         plan_id=body.plan_id,
         status=models.CompanyStatus.pending,
     )

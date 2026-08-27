@@ -63,6 +63,10 @@ function CompaniesContent() {
     admin_email: "",
     phone: "",
     plan_id: "",
+    gst_number: "",
+    pan_number: "",
+    address: "",
+    locations: "",
   });
 
   const load = useCallback(async (status: string, q: string) => {
@@ -119,6 +123,10 @@ function CompaniesContent() {
             admin_email: addForm.admin_email,
             phone: addForm.phone,
             plan_id: Number(addForm.plan_id),
+            gst_number: addForm.gst_number || null,
+            pan_number: addForm.pan_number || null,
+            address: addForm.address || null,
+            locations: addForm.locations || null,
           }),
         }
       );
@@ -129,6 +137,10 @@ function CompaniesContent() {
         admin_email: "",
         phone: "",
         plan_id: "",
+        gst_number: "",
+        pan_number: "",
+        address: "",
+        locations: "",
       });
       setAdded({
         company_name: result.company_name,
@@ -373,6 +385,39 @@ function CompaniesContent() {
                     </option>
                   ))}
               </select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="GST Number (optional)">
+                <input
+                  className={inputCls}
+                  placeholder="22AAAAA0000A1Z5"
+                  value={addForm.gst_number}
+                  onChange={setAdd("gst_number")}
+                />
+              </Field>
+              <Field label="PAN Number (optional)">
+                <input
+                  className={inputCls}
+                  placeholder="AAAAA0000A"
+                  value={addForm.pan_number}
+                  onChange={setAdd("pan_number")}
+                />
+              </Field>
+            </div>
+            <Field label="Address (optional)">
+              <input
+                className={inputCls}
+                value={addForm.address}
+                onChange={setAdd("address")}
+              />
+            </Field>
+            <Field label="Locations (optional)">
+              <input
+                className={inputCls}
+                placeholder="Chennai, Coimbatore, Bengaluru"
+                value={addForm.locations}
+                onChange={setAdd("locations")}
+              />
             </Field>
             <p className="text-xs text-stone-400">
               Company is created and activated immediately — the subscription

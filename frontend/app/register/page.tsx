@@ -1,28 +1,23 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Users } from "lucide-react";
-import { api, fmtMoney } from "@/lib/api";
+import { CheckCircle2 } from "lucide-react";
+import { api } from "@/lib/api";
 import type { Company, Plan } from "@/lib/types";
 import { Button, ErrorNote, Field, inputCls } from "@/components/ui";
 
-function parseModules(raw: string | null): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function RegisterPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [planId, setPlanId] = useState<number | null>(null);
+  // No plan picker here — a self-registered company starts on the default
+  // (cheapest active) plan; the Super Admin can change it after approval.
+  const [defaultPlanId, setDefaultPlanId] = useState<number | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
+  const [panNumber, setPanNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [locations, setLocations] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -31,7 +26,10 @@ export default function RegisterPage() {
     (async () => {
       try {
         const list = await api<Plan[]>("/plans");
-        setPlans(list.filter((p) => p.status === "active"));
+        const active = list.filter((p) => p.status === "active");
+        const cheapest = active.sort((a, b) => Number(a.monthly_price) - Number(b.monthly_price))[0];
+        if (cheapest) setDefaultPlanId(cheapest.id);
+        else setError("No plan is available for registration — contact support.");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load plans");
       }
@@ -41,8 +39,8 @@ export default function RegisterPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (planId === null) {
-      setError("Please select a plan");
+    if (defaultPlanId === null) {
+      setError("No plan is available for registration — contact support.");
       return;
     }
     setBusy(true);
@@ -54,7 +52,11 @@ export default function RegisterPage() {
           admin_name: adminName,
           admin_email: adminEmail,
           phone: phone,
-          plan_id: planId,
+          plan_id: defaultPlanId,
+          gst_number: gstNumber || null,
+          pan_number: panNumber || null,
+          address: address || null,
+          locations: locations || null,
         }),
       });
       setDone(true);
@@ -70,12 +72,12 @@ export default function RegisterPage() {
         <div className="w-full max-w-md rounded-3xl bg-stone-50 p-8 text-center shadow-lg">
           <CheckCircle2 size={48} className="mx-auto text-green-600" />
           <h1 className="mt-4 text-xl font-semibold text-stone-900">
-            Registration Submitted!
+            You&apos;re All Set!
           </h1>
           <p className="mt-2 text-sm text-stone-500">
-            Thanks, <span className="font-medium">{companyName}</span>. Our team
-            will review your registration. Once approved, login details will be
-            sent to <span className="font-medium">{adminEmail}</span>.
+            Thanks, <span className="font-medium">{companyName}</span>. Your
+            account is active — login details have been sent to{" "}
+            <span className="font-medium">{adminEmail}</span>.
           </p>
           <Link
             href="/login"
@@ -102,61 +104,14 @@ export default function RegisterPage() {
             Register Your Company
           </h1>
           <p className="text-sm text-stone-500">
-            Choose a plan and submit — we&apos;ll activate your account after
-            review
+            Tell us about your company and we&apos;ll activate your account
+            right away
           </p>
         </div>
 
         <ErrorNote message={error} />
 
         <form onSubmit={submit} className="flex flex-col gap-5">
-          {/* Plan selection */}
-          <div>
-            <p className="mb-2 text-sm font-medium text-stone-600">
-              Select a plan
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {plans.map((p) => (
-                <button
-                  type="button"
-                  key={p.id}
-                  onClick={() => setPlanId(p.id)}
-                  className={`rounded-2xl border p-4 text-left transition-all ${
-                    planId === p.id
-                      ? "border-stone-900 bg-white shadow-md ring-2 ring-stone-900"
-                      : "border-stone-200 bg-white hover:border-stone-400"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-stone-900">
-                      {p.plan_name}
-                    </span>
-                    {planId === p.id && (
-                      <CheckCircle2 size={18} className="text-stone-900" />
-                    )}
-                  </div>
-                  <p className="mt-1 text-2xl font-semibold text-stone-900">
-                    {fmtMoney(p.monthly_price)}
-                    <span className="text-xs font-normal text-stone-400">
-                      {" "}
-                      /month
-                    </span>
-                  </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-stone-500">
-                    <Users size={12} /> Up to{" "}
-                    {p.max_employees >= 999999
-                      ? "unlimited"
-                      : p.max_employees.toLocaleString()}{" "}
-                    employees
-                  </p>
-                  <p className="mt-2 line-clamp-2 text-xs text-stone-400">
-                    {parseModules(p.included_modules).slice(0, 4).join(" · ")}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Company details */}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Company name">
@@ -199,6 +154,38 @@ export default function RegisterPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 placeholder="9876543210"
+              />
+            </Field>
+            <Field label="GST Number (optional)">
+              <input
+                className={inputCls}
+                value={gstNumber}
+                onChange={(e) => setGstNumber(e.target.value)}
+                placeholder="22AAAAA0000A1Z5"
+              />
+            </Field>
+            <Field label="PAN Number (optional)">
+              <input
+                className={inputCls}
+                value={panNumber}
+                onChange={(e) => setPanNumber(e.target.value)}
+                placeholder="AAAAA0000A"
+              />
+            </Field>
+            <Field label="Address (optional)">
+              <input
+                className={inputCls}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Company address"
+              />
+            </Field>
+            <Field label="Locations (optional)">
+              <input
+                className={inputCls}
+                value={locations}
+                onChange={(e) => setLocations(e.target.value)}
+                placeholder="Chennai, Coimbatore, Bengaluru"
               />
             </Field>
           </div>

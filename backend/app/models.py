@@ -94,6 +94,10 @@ class Company(Base):
     admin_name = Column(String(100), nullable=False)
     admin_email = Column(String(150), nullable=False)
     phone = Column(String(20))
+    gst_number = Column(String(20))
+    pan_number = Column(String(20))
+    address = Column(String(300))
+    locations = Column(String(300))
     plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
     database_type = Column(Enum(DatabaseType, name="database_type"),
                            default=DatabaseType.shared)
