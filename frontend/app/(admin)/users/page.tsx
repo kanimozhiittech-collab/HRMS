@@ -1,6 +1,6 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { KeyRound, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { KeyRound, Search, UserPlus } from "lucide-react";
 import { api, fmtDateTime } from "@/lib/api";
 import type { Company, User } from "@/lib/types";
 import {
@@ -10,21 +10,27 @@ import {
   inputCls,
   Modal,
   PageHeader,
+  Pagination,
   StatusBadge,
   Table,
   Td,
 } from "@/components/ui";
 
 type ResetResult = { message: string; temp_password: string };
+const PAGE_SIZE = 20;
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ company_id: "", name: "", email: "" });
+  const [companySearch, setCompanySearch] = useState("");
+  const [showCompanyOptions, setShowCompanyOptions] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reset, setReset] = useState<ResetResult | null>(null);
 
@@ -51,6 +57,35 @@ export default function UsersPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        companyName(u.company_id).toLowerCase().includes(q),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users, companies, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const activeCompanies = companies.filter((c) => c.status === "active");
+  const filteredCompanyOptions = useMemo(() => {
+    const q = companySearch.trim().toLowerCase();
+    if (!q) return activeCompanies;
+    return activeCompanies.filter((c) =>
+      c.company_name.toLowerCase().includes(q),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companies, companySearch]);
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -66,6 +101,7 @@ export default function UsersPage() {
       });
       setShowCreate(false);
       setForm({ company_id: "", name: "", email: "" });
+      setCompanySearch("");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
@@ -111,6 +147,15 @@ export default function UsersPage() {
         }
       />
       <ErrorNote message={error} />
+      <div className="mb-3 relative w-full max-w-xs">
+        <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+        <input
+          className={`${inputCls} pl-8`}
+          placeholder="Search name, email or company…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       <Table
         headers={[
@@ -122,9 +167,9 @@ export default function UsersPage() {
           "Status",
           "Actions",
         ]}
-        empty={loaded && users.length === 0}
+        empty={loaded && filtered.length === 0}
       >
-        {users.map((u) => (
+        {paged.map((u) => (
           <tr key={u.id}>
             <Td className="font-medium text-stone-900">
               {u.name}
@@ -161,32 +206,66 @@ export default function UsersPage() {
           </tr>
         ))}
       </Table>
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {showCreate && (
-        <Modal title="New Company Admin" onClose={() => setShowCreate(false)}>
+        <Modal
+          title="New Company Admin"
+          onClose={() => {
+            setShowCreate(false);
+            setCompanySearch("");
+          }}
+        >
           <form onSubmit={create} className="flex flex-col gap-4">
             <Field label="Company">
-              <select
-                required
-                className={inputCls}
-                value={form.company_id}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, company_id: e.target.value }))
-                }
-              >
-                <option value="">Select company…</option>
-                {companies
-                  .filter((c) => c.status === "active")
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.company_name}
-                    </option>
-                  ))}
-              </select>
+              <div className="relative">
+                <input
+                  className={inputCls}
+                  placeholder="Search company…"
+                  value={
+                    form.company_id
+                      ? (companies.find((c) => String(c.id) === form.company_id)
+                          ?.company_name ?? companySearch)
+                      : companySearch
+                  }
+                  onFocus={() => setShowCompanyOptions(true)}
+                  onChange={(e) => {
+                    setCompanySearch(e.target.value);
+                    setForm((f) => ({ ...f, company_id: "" }));
+                    setShowCompanyOptions(true);
+                  }}
+                  onBlur={() =>
+                    setTimeout(() => setShowCompanyOptions(false), 150)
+                  }
+                />
+                {showCompanyOptions && (
+                  <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white shadow-lg">
+                    {filteredCompanyOptions.length === 0 ? (
+                      <p className="px-3 py-2 text-sm text-stone-400">
+                        No companies found
+                      </p>
+                    ) : (
+                      filteredCompanyOptions.map((c) => (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => {
+                            setForm((f) => ({ ...f, company_id: String(c.id) }));
+                            setCompanySearch("");
+                            setShowCompanyOptions(false);
+                          }}
+                          className="block w-full px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-100"
+                        >
+                          {c.company_name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </Field>
             <Field label="Name">
               <input
-                required
                 className={inputCls}
                 value={form.name}
                 onChange={(e) =>
@@ -197,7 +276,6 @@ export default function UsersPage() {
             <Field label="Email">
               <input
                 type="email"
-                required
                 className={inputCls}
                 value={form.email}
                 onChange={(e) =>
@@ -210,7 +288,13 @@ export default function UsersPage() {
               change it on first login.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setShowCreate(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowCreate(false);
+                  setCompanySearch("");
+                }}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={busy}>
