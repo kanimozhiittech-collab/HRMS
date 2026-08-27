@@ -15,6 +15,10 @@ export interface Company {
   admin_name: string;
   admin_email: string;
   phone: string | null;
+  gst_number: string | null;
+  pan_number: string | null;
+  address: string | null;
+  locations: string | null;
   plan_id: number;
   database_type: string | null;
   database_name: string | null;

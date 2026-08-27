@@ -211,6 +211,10 @@ export default function CompanyDetailPage() {
             <InfoRow label="Admin name" value={company.admin_name} />
             <InfoRow label="Admin email" value={company.admin_email} />
             <InfoRow label="Phone" value={company.phone} />
+            <InfoRow label="GST Number" value={company.gst_number} />
+            <InfoRow label="PAN Number" value={company.pan_number} />
+            <InfoRow label="Address" value={company.address} />
+            <InfoRow label="Locations" value={company.locations} />
             <InfoRow
               label="Plan"
               value={
