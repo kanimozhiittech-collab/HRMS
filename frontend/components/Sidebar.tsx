@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Asterisk,
   BadgeCheck,
   BarChart3,
   Bell,
@@ -28,15 +27,6 @@ export type SidebarCounts = {
   expiring: number;
   unread: number;
 };
-
-const railItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/companies", icon: Building2, label: "Companies" },
-  { href: "/plans", icon: Layers, label: "Plans" },
-  { href: "/subscriptions", icon: CalendarClock, label: "Subscriptions" },
-  { href: "/payments", icon: CreditCard, label: "Payments" },
-  { href: "/reports", icon: BarChart3, label: "Reports" },
-];
 
 function menuGroups(counts: SidebarCounts) {
   return [
@@ -117,49 +107,8 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Dark icon rail — hidden on mobile */}
-      <aside className="hidden w-16 shrink-0 flex-col items-center justify-between rounded-3xl bg-stone-900 py-5 shadow-lg md:flex">
-        <div className="flex flex-col items-center gap-1">
-          <Link
-            href="/dashboard"
-            className="mb-4 flex h-10 w-10 items-center justify-center text-white"
-            title="HRMS"
-          >
-            <Asterisk size={26} strokeWidth={2.5} />
-          </Link>
-          {railItems.map((item) => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-                  active
-                    ? "bg-stone-700 text-white"
-                    : "text-stone-400 hover:bg-stone-800 hover:text-white"
-                }`}
-              >
-                <item.icon size={19} />
-              </Link>
-            );
-          })}
-        </div>
-        <Link
-          href="/settings"
-          title="Global Settings"
-          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-            pathname.startsWith("/settings")
-              ? "bg-stone-700 text-white"
-              : "text-stone-400 hover:bg-stone-800 hover:text-white"
-          }`}
-        >
-          <Settings size={19} />
-        </Link>
-      </aside>
-
       {/* Light menu panel */}
-      <aside className="flex w-72 shrink-0 flex-col overflow-y-auto rounded-l-3xl border-r border-stone-200 bg-stone-100 p-5 md:rounded-l-3xl">
+      <aside className="flex w-72 shrink-0 flex-col overflow-y-auto rounded-3xl border-r border-stone-200 bg-stone-100 p-5">
         {/* Brand */}
         <div className="mb-6">
           <div className="flex items-center justify-between gap-3">
@@ -213,11 +162,14 @@ export default function Sidebar({
                       href={item.href}
                       className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
                         active
-                          ? "bg-white font-medium text-stone-900 shadow-sm ring-1 ring-stone-200"
+                          ? "bg-white font-medium text-indigo-700 shadow-sm ring-1 ring-stone-200"
                           : "text-stone-600 hover:bg-stone-200/60"
                       }`}
                     >
-                      <item.icon size={17} className="shrink-0 text-stone-500" />
+                      <item.icon
+                        size={17}
+                        className={`shrink-0 ${active ? "text-indigo-600" : "text-stone-500"}`}
+                      />
                       <span className="flex-1 truncate">{item.label}</span>
                       {badge !== null && badge > 0 && (
                         <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-medium text-stone-600">

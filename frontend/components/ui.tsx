@@ -7,7 +7,7 @@ export function PageHeader({
   subtitle,
   actions,
 }: {
-  title: string;
+  title: ReactNode;
   subtitle?: string;
   actions?: ReactNode;
 }) {
@@ -73,7 +73,7 @@ export function StatusBadge({ status }: { status: string }) {
 type ButtonVariant = "primary" | "ghost" | "danger" | "success";
 
 const buttonStyles: Record<ButtonVariant, string> = {
-  primary: "bg-stone-900 text-white hover:bg-stone-700",
+  primary: "bg-indigo-600 text-white hover:bg-indigo-500",
   ghost:
     "border border-stone-300 bg-white text-stone-700 hover:bg-stone-100",
   danger: "bg-red-600 text-white hover:bg-red-500",
@@ -158,7 +158,7 @@ export function Field({
 }
 
 export const inputCls =
-  "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-stone-500";
+  "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500";
 
 export function Table({
   headers,
@@ -221,13 +221,48 @@ export function Tabs({
           onClick={() => onChange(t.key)}
           className={`-mb-px border-b-2 px-3.5 py-2 text-sm font-medium transition-colors ${
             active === t.key
-              ? "border-stone-900 text-stone-900"
+              ? "border-indigo-600 text-indigo-700"
               : "border-transparent text-stone-400 hover:text-stone-600"
           }`}
         >
           {t.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+export function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="mt-4 flex items-center justify-between text-sm">
+      <span className="text-stone-500">
+        Page {page} of {totalPages}
+      </span>
+      <div className="flex gap-2">
+        <button
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 font-medium text-stone-600 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <button
+          disabled={page >= totalPages}
+          onClick={() => onChange(page + 1)}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 font-medium text-stone-600 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }
