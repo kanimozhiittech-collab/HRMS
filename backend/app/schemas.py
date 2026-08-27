@@ -82,6 +82,11 @@ class CompanyRegister(BaseModel):
             raise ValueError("Phone must be exactly 10 digits")
         return v
 
+    @field_validator("admin_email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower()
+
 
 class CompanyOut(BaseModel):
     id: int

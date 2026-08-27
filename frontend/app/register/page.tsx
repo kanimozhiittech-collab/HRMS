@@ -183,7 +183,7 @@ export default function RegisterPage() {
                 required
                 className={inputCls}
                 value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
+                onChange={(e) => setAdminEmail(e.target.value.toLowerCase())}
                 placeholder="senthil@company.com"
               />
             </Field>

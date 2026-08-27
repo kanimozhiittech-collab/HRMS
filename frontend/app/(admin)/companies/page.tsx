@@ -311,7 +311,9 @@ function CompaniesContent() {
                 required
                 className={inputCls}
                 value={addForm.admin_email}
-                onChange={setAdd("admin_email")}
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, admin_email: e.target.value.toLowerCase() }))
+                }
               />
             </Field>
             <Field label="Plan">
