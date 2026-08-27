@@ -201,7 +201,6 @@ function SubscriptionsContent() {
               <input
                 type="number"
                 min="1"
-                required
                 className={inputCls}
                 value={extendDays}
                 onChange={(e) => setExtendDays(e.target.value)}

@@ -190,7 +190,6 @@ export default function PaymentsPage() {
           <form onSubmit={createInvoice} className="flex flex-col gap-4">
             <Field label="Company">
               <select
-                required
                 className={inputCls}
                 value={invCompany}
                 onChange={(e) => setInvCompany(e.target.value)}

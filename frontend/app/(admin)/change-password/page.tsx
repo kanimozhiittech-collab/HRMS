@@ -54,7 +54,6 @@ export default function ChangePasswordPage() {
           <Field label="Current password">
             <input
               type="password"
-              required
               className={inputCls}
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
@@ -63,7 +62,6 @@ export default function ChangePasswordPage() {
           <Field label="New password (min 6 characters)">
             <input
               type="password"
-              required
               minLength={6}
               className={inputCls}
               value={newPassword}
@@ -73,7 +71,6 @@ export default function ChangePasswordPage() {
           <Field label="Confirm new password">
             <input
               type="password"
-              required
               className={inputCls}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

@@ -199,7 +199,6 @@ export default function PlansPage() {
           <form onSubmit={save} className="flex flex-col gap-4">
             <Field label="Plan name">
               <input
-                required
                 className={inputCls}
                 value={form.plan_name}
                 onChange={set("plan_name")}

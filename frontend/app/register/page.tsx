@@ -116,7 +116,6 @@ export default function RegisterPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Company name">
               <input
-                required
                 className={inputCls}
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
@@ -125,7 +124,6 @@ export default function RegisterPage() {
             </Field>
             <Field label="Admin name">
               <input
-                required
                 className={inputCls}
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
@@ -135,7 +133,6 @@ export default function RegisterPage() {
             <Field label="Admin email">
               <input
                 type="email"
-                required
                 className={inputCls}
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value.toLowerCase())}
@@ -144,7 +141,6 @@ export default function RegisterPage() {
             </Field>
             <Field label="Phone (10 digits)">
               <input
-                required
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}

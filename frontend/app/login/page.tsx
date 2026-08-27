@@ -59,7 +59,6 @@ export default function LoginPage() {
           <Field label="Email">
             <input
               type="email"
-              required
               className={inputCls}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -70,7 +69,6 @@ export default function LoginPage() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
-                required
                 className={`${inputCls} pr-10`}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
