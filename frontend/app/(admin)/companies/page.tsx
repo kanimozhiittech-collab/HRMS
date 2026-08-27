@@ -31,6 +31,12 @@ type ApproveResult = {
   temp_password: string;
 };
 
+type AddResult = {
+  company_name: string;
+  admin_email: string;
+  temp_password: string;
+};
+
 function CompaniesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,6 +51,7 @@ function CompaniesContent() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [approved, setApproved] = useState<ApproveResult | null>(null);
+  const [added, setAdded] = useState<AddResult | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   // Add Company modal state
@@ -102,16 +109,19 @@ function CompaniesContent() {
     setError("");
     setAddBusy(true);
     try {
-      await api("/companies/register", {
-        method: "POST",
-        body: JSON.stringify({
-          company_name: addForm.company_name,
-          admin_name: addForm.admin_name,
-          admin_email: addForm.admin_email,
-          phone: addForm.phone,
-          plan_id: Number(addForm.plan_id),
-        }),
-      });
+      const result = await api<{ company_name: string; admin_email: string; temp_password: string }>(
+        "/companies/register",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            company_name: addForm.company_name,
+            admin_name: addForm.admin_name,
+            admin_email: addForm.admin_email,
+            phone: addForm.phone,
+            plan_id: Number(addForm.plan_id),
+          }),
+        }
+      );
       setShowAdd(false);
       setAddForm({
         company_name: "",
@@ -120,7 +130,12 @@ function CompaniesContent() {
         phone: "",
         plan_id: "",
       });
-      setTab("pending"); // new company lands in Pending — jump there
+      setAdded({
+        company_name: result.company_name,
+        admin_email: result.admin_email,
+        temp_password: result.temp_password,
+      });
+      setTab("active"); // registration auto-approves — company lands in Active, not Pending
     } catch (err) {
       setError(err instanceof Error ? err.message : "Add company failed");
     } finally {
@@ -268,6 +283,32 @@ function CompaniesContent() {
         </Modal>
       )}
 
+      {added && (
+        <Modal title="Company Created 🎉" onClose={() => setAdded(null)}>
+          <p className="mb-4 text-sm text-stone-600">
+            {added.company_name} was created and is already Active.
+          </p>
+          <div className="rounded-xl bg-stone-100 p-4 text-sm">
+            <p>
+              <span className="font-medium text-stone-500">Admin email: </span>
+              {added.admin_email}
+            </p>
+            <p className="mt-1">
+              <span className="font-medium text-stone-500">
+                Temp password:{" "}
+              </span>
+              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+                {added.temp_password}
+              </code>
+            </p>
+          </div>
+          <p className="mt-3 text-xs text-stone-400">
+            Shown here because email sending is not connected yet. The admin
+            must change this password on first login.
+          </p>
+        </Modal>
+      )}
+
       {showAdd && (
         <Modal title="Add Company" onClose={() => setShowAdd(false)}>
           <form onSubmit={addCompany} className="flex flex-col gap-4">
@@ -334,8 +375,8 @@ function CompaniesContent() {
               </select>
             </Field>
             <p className="text-xs text-stone-400">
-              Company is created in Pending status — approve it to activate,
-              create the subscription and the admin login.
+              Company is created and activated immediately — the subscription
+              and admin login are set up right away, no separate approval step.
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setShowAdd(false)}>
