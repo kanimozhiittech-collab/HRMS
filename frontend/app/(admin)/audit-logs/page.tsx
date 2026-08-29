@@ -6,9 +6,12 @@ import {
   ErrorNote,
   inputCls,
   PageHeader,
+  Pagination,
   Table,
   Td,
 } from "@/components/ui";
+
+const PAGE_SIZE = 20;
 
 const MODULES = [
   "",
@@ -27,6 +30,7 @@ export default function AuditLogsPage() {
   const [module, setModule] = useState("");
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async (mod: string) => {
     try {
@@ -44,6 +48,13 @@ export default function AuditLogsPage() {
   useEffect(() => {
     load(module);
   }, [module, load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [module]);
+
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  const paged = logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -70,7 +81,7 @@ export default function AuditLogsPage() {
         headers={["Time", "Action", "Module", "Description", "User ID", "IP"]}
         empty={loaded && logs.length === 0}
       >
-        {logs.map((l) => (
+        {paged.map((l) => (
           <tr key={l.id}>
             <Td className="whitespace-nowrap text-xs text-stone-400">
               {fmtDateTime(l.created_at)}
@@ -89,6 +100,7 @@ export default function AuditLogsPage() {
           </tr>
         ))}
       </Table>
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

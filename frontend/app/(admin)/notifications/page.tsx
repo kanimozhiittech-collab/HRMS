@@ -3,13 +3,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { api, fmtDateTime } from "@/lib/api";
 import type { Notification } from "@/lib/types";
-import { Button, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, PageHeader, Pagination } from "@/components/ui";
+
+const PAGE_SIZE = 20;
 
 export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(1);
   const requestId = useRef(0);
   // Mirrors unreadOnly so async handlers reload with the CURRENT filter,
   // not the value captured when the handler was created.
@@ -36,6 +39,13 @@ export default function NotificationsPage() {
   useEffect(() => {
     load(unreadOnly);
   }, [unreadOnly, load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [unreadOnly]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const paged = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const markRead = async (id: number) => {
     try {
@@ -84,7 +94,7 @@ export default function NotificationsPage() {
             No notifications
           </p>
         )}
-        {items.map((n) => (
+        {paged.map((n) => (
           <Card
             key={n.id}
             className={`flex items-start gap-3 !p-4 ${
@@ -122,6 +132,7 @@ export default function NotificationsPage() {
           </Card>
         ))}
       </div>
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }
