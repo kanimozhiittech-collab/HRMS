@@ -54,8 +54,9 @@ export async function api<T = unknown>(
     try {
       const body = await res.json();
       if (body?.detail) {
-        detail =
-          typeof body.detail === "string"
+        detail = Array.isArray(body.detail)
+          ? body.detail.map((d: any) => d.msg || JSON.stringify(d)).join("; ")
+          : typeof body.detail === "string"
             ? body.detail
             : JSON.stringify(body.detail);
       }
@@ -89,8 +90,9 @@ export async function apiUpload<T = unknown>(
     try {
       const body = await res.json();
       if (body?.detail) {
-        detail =
-          typeof body.detail === "string"
+        detail = Array.isArray(body.detail)
+          ? body.detail.map((d: any) => d.msg || JSON.stringify(d)).join("; ")
+          : typeof body.detail === "string"
             ? body.detail
             : JSON.stringify(body.detail);
       }

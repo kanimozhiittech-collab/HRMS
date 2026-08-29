@@ -7,15 +7,20 @@ import type { Company, Plan, Subscription } from "@/lib/types";
 import {
   Button,
   ErrorNote,
+  errorInputCls,
   Field,
   inputCls,
   Modal,
   PageHeader,
+  Pagination,
   StatusBadge,
   Table,
   Tabs,
   Td,
 } from "@/components/ui";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+type AddFormErrors = Partial<Record<"company_name" | "admin_name" | "admin_email" | "phone" | "plan_id", string>>;
 
 const TABS = [
   { key: "", label: "All" },
@@ -70,6 +75,9 @@ function CompaniesContent() {
     locations: "",
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [addErrors, setAddErrors] = useState<AddFormErrors>({});
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const load = useCallback(async (status: string, q: string) => {
     try {
@@ -96,6 +104,13 @@ function CompaniesContent() {
     return () => clearTimeout(timer);
   }, [tab, search, load]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [tab, search]);
+
+  const totalPages = Math.max(1, Math.ceil(companies.length / PAGE_SIZE));
+  const pagedCompanies = companies.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const action = async (companyId: number, verb: string) => {
     setError("");
     setBusyId(companyId);
@@ -112,8 +127,22 @@ function CompaniesContent() {
     }
   };
 
+  const validateAddForm = (): AddFormErrors => {
+    const next: AddFormErrors = {};
+    if (!addForm.company_name.trim()) next.company_name = "Company name is required";
+    if (!addForm.admin_name.trim()) next.admin_name = "Admin name is required";
+    if (!addForm.admin_email.trim()) next.admin_email = "Admin email is required";
+    else if (!EMAIL_RE.test(addForm.admin_email)) next.admin_email = "Enter a valid email address";
+    if (addForm.phone.length !== 10) next.phone = "Enter a valid 10-digit phone number";
+    if (!addForm.plan_id) next.plan_id = "Select a plan";
+    return next;
+  };
+
   const addCompany = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nextErrors = validateAddForm();
+    if (Object.keys(nextErrors).length > 0) { setAddErrors(nextErrors); return; }
+    setAddErrors({});
     setError("");
     setAddBusy(true);
     try {
@@ -167,9 +196,20 @@ function CompaniesContent() {
     }
   };
 
+  const clearAddError = (key: keyof AddFormErrors) =>
+    setAddErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+
   const setAdd = (key: keyof typeof addForm) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setAddForm((f) => ({ ...f, [key]: e.target.value }));
+      clearAddError(key as keyof AddFormErrors);
+    };
+
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setAddErrors({});
+    setLogoFile(null);
+  };
 
   return (
     <div>
@@ -209,7 +249,7 @@ function CompaniesContent() {
         ]}
         empty={loaded && companies.length === 0}
       >
-        {companies.map((c) => (
+        {pagedCompanies.map((c) => (
           <tr
             key={c.id}
             onClick={() => router.push(`/companies/${c.id}`)}
@@ -317,6 +357,7 @@ function CompaniesContent() {
           </tr>
         ))}
       </Table>
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {approved && (
         <Modal title="Company Approved 🎉" onClose={() => setApproved(null)}>
@@ -369,52 +410,52 @@ function CompaniesContent() {
       )}
 
       {showAdd && (
-        <Modal title="Add Company" onClose={() => setShowAdd(false)}>
-          <form onSubmit={addCompany} className="flex flex-col gap-4">
-            <Field label="Company name">
+        <Modal title="Add Company" onClose={closeAddModal}>
+          <form onSubmit={addCompany} noValidate className="flex flex-col gap-4">
+            <Field label="Company name" error={addErrors.company_name}>
               <input
-                className={inputCls}
+                className={`${inputCls} ${addErrors.company_name ? errorInputCls : ""}`}
                 value={addForm.company_name}
                 onChange={setAdd("company_name")}
                 placeholder="Erode Spinners Pvt Ltd"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Admin name">
+              <Field label="Admin name" error={addErrors.admin_name}>
                 <input
-                  className={inputCls}
+                  className={`${inputCls} ${addErrors.admin_name ? errorInputCls : ""}`}
                   value={addForm.admin_name}
                   onChange={setAdd("admin_name")}
                 />
               </Field>
-              <Field label="Phone (10 digits)">
+              <Field label="Phone (10 digits)" error={addErrors.phone}>
                 <input
                   type="tel"
                   inputMode="numeric"
                   maxLength={10}
-                  pattern="\d{10}"
-                  title="Enter exactly 10 digits"
-                  className={inputCls}
+                  className={`${inputCls} ${addErrors.phone ? errorInputCls : ""}`}
                   value={addForm.phone}
-                  onChange={(e) =>
-                    setAddForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
-                  }
+                  onChange={(e) => {
+                    setAddForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }));
+                    clearAddError("phone");
+                  }}
                 />
               </Field>
             </div>
-            <Field label="Admin email">
+            <Field label="Admin email" error={addErrors.admin_email}>
               <input
                 type="email"
-                className={inputCls}
+                className={`${inputCls} ${addErrors.admin_email ? errorInputCls : ""}`}
                 value={addForm.admin_email}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, admin_email: e.target.value.toLowerCase() }))
-                }
+                onChange={(e) => {
+                  setAddForm((f) => ({ ...f, admin_email: e.target.value.toLowerCase() }));
+                  clearAddError("admin_email");
+                }}
               />
             </Field>
-            <Field label="Plan">
+            <Field label="Plan" error={addErrors.plan_id}>
               <select
-                className={inputCls}
+                className={`${inputCls} ${addErrors.plan_id ? errorInputCls : ""}`}
                 value={addForm.plan_id}
                 onChange={setAdd("plan_id")}
               >
@@ -474,13 +515,7 @@ function CompaniesContent() {
               and admin login are set up right away, no separate approval step.
             </p>
             <div className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowAdd(false);
-                  setLogoFile(null);
-                }}
-              >
+              <Button variant="ghost" onClick={closeAddModal}>
                 Cancel
               </Button>
               <Button type="submit" disabled={addBusy}>
