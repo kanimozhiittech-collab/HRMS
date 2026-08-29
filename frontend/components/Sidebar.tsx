@@ -6,12 +6,10 @@ import {
   BarChart3,
   Bell,
   Building2,
-  CalendarClock,
   ChevronDown,
   CreditCard,
   Hourglass,
   LayoutDashboard,
-  Layers,
   LifeBuoy,
   LogOut,
   ScrollText,
@@ -35,12 +33,6 @@ function menuGroups(counts: SidebarCounts) {
       items: [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/companies", label: "Companies", icon: Building2 },
-        { href: "/plans", label: "Plans", icon: Layers },
-        {
-          href: "/subscriptions",
-          label: "Subscriptions",
-          icon: CalendarClock,
-        },
         { href: "/users", label: "Platform Users", icon: UsersRound },
       ],
     },
@@ -138,7 +130,7 @@ export default function Sidebar({
             </div>
           </div>
           <p className="mt-2 flex items-center gap-1 text-xs font-medium text-stone-500">
-            NYGROW HRM
+            NYGROW
             <ChevronDown size={12} className="text-stone-400" />
           </p>
         </div>

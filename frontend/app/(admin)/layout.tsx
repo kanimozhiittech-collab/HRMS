@@ -67,7 +67,7 @@ export default function AdminLayout({
         </button>
         <div className="flex items-center gap-2 text-white">
           <Asterisk size={20} strokeWidth={2.5} />
-          <span className="text-sm font-semibold tracking-wide">NYGROW HRM</span>
+          <span className="text-sm font-semibold tracking-wide">NYGROW</span>
         </div>
       </header>
 
