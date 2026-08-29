@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { ImageUp, Plus, Search, X } from "lucide-react";
 import { api, apiUpload, daysLeft, fmtDate } from "@/lib/api";
 import type { Company, Plan, Subscription } from "@/lib/types";
 import {
@@ -75,9 +75,17 @@ function CompaniesContent() {
     locations: "",
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [addErrors, setAddErrors] = useState<AddFormErrors>({});
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
+
+  useEffect(() => {
+    if (!logoFile) { setLogoPreview(null); return; }
+    const url = URL.createObjectURL(logoFile);
+    setLogoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [logoFile]);
 
   const load = useCallback(async (status: string, q: string) => {
     try {
@@ -503,10 +511,36 @@ function CompaniesContent() {
               />
             </Field>
             <Field label="Company logo (optional)">
+              <label
+                htmlFor="add-company-logo"
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-stone-300 bg-white px-3 py-2.5 text-sm transition-colors hover:border-indigo-400 hover:bg-indigo-50/40"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-100 text-stone-400">
+                  {logoPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoPreview} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageUp size={16} />
+                  )}
+                </span>
+                <span className={`flex-1 truncate ${logoFile ? "text-stone-700" : "text-stone-400"}`}>
+                  {logoFile ? logoFile.name : "Click to upload a logo"}
+                </span>
+                {logoFile && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setLogoFile(null); }}
+                    className="shrink-0 rounded-lg p-1 text-stone-400 hover:bg-stone-200 hover:text-stone-700"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </label>
               <input
+                id="add-company-logo"
                 type="file"
                 accept="image/*"
-                className={inputCls}
+                className="hidden"
                 onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
               />
             </Field>

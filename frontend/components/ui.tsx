@@ -238,6 +238,27 @@ export function Tabs({
   );
 }
 
+function pageBubbleList(current: number, total: number): (number | "…")[] {
+  const delta = 1;
+  const range: number[] = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+  const withDots: (number | "…")[] = [];
+  let prev = 0;
+  for (const i of range) {
+    if (prev) {
+      if (i - prev === 2) withDots.push(prev + 1);
+      else if (i - prev > 2) withDots.push("…");
+    }
+    withDots.push(i);
+    prev = i;
+  }
+  return withDots;
+}
+
 export function Pagination({
   page,
   totalPages,
@@ -249,26 +270,40 @@ export function Pagination({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="mt-4 flex items-center justify-between text-sm">
-      <span className="text-stone-500">
-        Page {page} of {totalPages}
-      </span>
-      <div className="flex gap-2">
-        <button
-          disabled={page <= 1}
-          onClick={() => onChange(page - 1)}
-          className="rounded-lg border border-stone-200 px-3 py-1.5 font-medium text-stone-600 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Previous
-        </button>
-        <button
-          disabled={page >= totalPages}
-          onClick={() => onChange(page + 1)}
-          className="rounded-lg border border-stone-200 px-3 py-1.5 font-medium text-stone-600 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Next
-        </button>
-      </div>
+    <div className="mt-4 flex items-center justify-center gap-1.5 text-sm">
+      <button
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+        className="rounded-lg border border-stone-200 px-3 py-1.5 font-medium text-stone-600 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Previous
+      </button>
+      {pageBubbleList(page, totalPages).map((p, i) =>
+        p === "…" ? (
+          <span key={`dots-${i}`} className="px-1.5 text-stone-400">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            className={`flex h-8 w-8 items-center justify-center rounded-full font-medium transition-colors ${
+              p === page
+                ? "bg-indigo-600 text-white"
+                : "text-stone-600 hover:bg-stone-100"
+            }`}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button
+        disabled={page >= totalPages}
+        onClick={() => onChange(page + 1)}
+        className="rounded-lg border border-stone-200 px-3 py-1.5 font-medium text-stone-600 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Next
+      </button>
     </div>
   );
 }
