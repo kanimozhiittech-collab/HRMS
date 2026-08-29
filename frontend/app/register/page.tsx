@@ -130,7 +130,7 @@ export default function RegisterPage() {
                 placeholder="Senthil Kumar"
               />
             </Field>
-            <Field label="Admin email">
+            <Field label="Company email">
               <input
                 type="email"
                 className={inputCls}
