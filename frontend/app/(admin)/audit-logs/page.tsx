@@ -26,13 +26,16 @@ const MODULES = [
   "settings",
 ];
 
+const moduleLabel = (m: string) => (m === "" ? "All modules" : m.replace("_", " "));
+
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [module, setModule] = useState("");
+  const [moduleSearch, setModuleSearch] = useState("");
+  const [showModuleOptions, setShowModuleOptions] = useState(false);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
 
   const load = useCallback(async (mod: string) => {
     try {
@@ -53,20 +56,16 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [module, search]);
+  }, [module]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return logs;
-    return logs.filter((l) =>
-      [l.action, l.description, l.module, l.ip_address, String(l.user_id ?? "")]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(q)),
-    );
-  }, [logs, search]);
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  const paged = logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filteredModuleOptions = useMemo(() => {
+    const q = moduleSearch.trim().toLowerCase();
+    if (!q) return MODULES;
+    return MODULES.filter((m) => moduleLabel(m).toLowerCase().includes(q));
+  }, [moduleSearch]);
 
   return (
     <div>
@@ -74,35 +73,48 @@ export default function AuditLogsPage() {
         title="Audit Logs"
         subtitle="Who did what, when, and from which IP"
         actions={
-          <>
-            <div className="relative w-full max-w-xs">
-              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
-              <input
-                className={`${inputCls} pl-8`}
-                placeholder="Search action, description, IP…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <select
-              className={`${inputCls} !w-auto`}
-              value={module}
-              onChange={(e) => setModule(e.target.value)}
-            >
-              {MODULES.map((m) => (
-                <option key={m} value={m}>
-                  {m === "" ? "All modules" : m.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </>
+          <div className="relative w-56">
+            <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              className={`${inputCls} pl-8`}
+              placeholder="Search modules…"
+              value={showModuleOptions ? moduleSearch : moduleLabel(module)}
+              onFocus={() => setShowModuleOptions(true)}
+              onChange={(e) => setModuleSearch(e.target.value)}
+              onBlur={() => setTimeout(() => setShowModuleOptions(false), 150)}
+            />
+            {showModuleOptions && (
+              <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white shadow-lg">
+                {filteredModuleOptions.length === 0 ? (
+                  <p className="px-3 py-2 text-sm text-stone-400">No modules found</p>
+                ) : (
+                  filteredModuleOptions.map((m) => (
+                    <button
+                      type="button"
+                      key={m || "all"}
+                      onClick={() => {
+                        setModule(m);
+                        setModuleSearch("");
+                        setShowModuleOptions(false);
+                      }}
+                      className={`block w-full px-3 py-2 text-left text-sm capitalize hover:bg-stone-100 ${
+                        m === module ? "font-medium text-indigo-700" : "text-stone-700"
+                      }`}
+                    >
+                      {moduleLabel(m)}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         }
       />
       <ErrorNote message={error} />
 
       <Table
         headers={["Time", "Action", "Module", "Description", "User ID", "IP"]}
-        empty={loaded && filtered.length === 0}
+        empty={loaded && logs.length === 0}
       >
         {paged.map((l) => (
           <tr key={l.id}>
