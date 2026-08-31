@@ -291,16 +291,16 @@ export default function CompanyDetailPage() {
       {resetResult && (
         <Modal title="Password Reset" onClose={() => setResetResult(null)}>
           <p className="mb-4 text-sm text-stone-600">{resetResult.message}</p>
-          <div className="rounded-xl bg-stone-100 p-4 text-sm">
+          <div className="rounded-xl bg-stone-100 p-4 text-sm text-stone-900">
             <p>
-              <span className="font-medium text-stone-500">Admin email: </span>
+              <span className="font-medium text-stone-700">Admin email: </span>
               {resetResult.admin_email}
             </p>
             <p className="mt-1">
-              <span className="font-medium text-stone-500">
+              <span className="font-medium text-stone-700">
                 New temporary password:{" "}
               </span>
-              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono font-semibold text-stone-900">
                 {resetResult.temp_password}
               </code>
             </p>
@@ -464,16 +464,16 @@ export default function CompanyDetailPage() {
       {approved && (
         <Modal title="Company Approved 🎉" onClose={() => setApproved(null)}>
           <p className="mb-4 text-sm text-stone-600">{approved.message}</p>
-          <div className="rounded-xl bg-stone-100 p-4 text-sm">
+          <div className="rounded-xl bg-stone-100 p-4 text-sm text-stone-900">
             <p>
-              <span className="font-medium text-stone-500">Admin email: </span>
+              <span className="font-medium text-stone-700">Admin email: </span>
               {approved.company_admin_email}
             </p>
             <p className="mt-1">
-              <span className="font-medium text-stone-500">
+              <span className="font-medium text-stone-700">
                 Temp password:{" "}
               </span>
-              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono font-semibold text-stone-900">
                 {approved.temp_password}
               </code>
             </p>

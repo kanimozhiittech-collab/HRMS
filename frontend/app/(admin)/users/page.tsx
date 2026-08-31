@@ -308,9 +308,9 @@ export default function UsersPage() {
       {reset && (
         <Modal title="Password Reset" onClose={() => setReset(null)}>
           <p className="mb-3 text-sm text-stone-600">{reset.message}</p>
-          <div className="rounded-xl bg-stone-100 p-4 text-sm">
-            <span className="font-medium text-stone-500">Temp password: </span>
-            <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+          <div className="rounded-xl bg-stone-100 p-4 text-sm text-stone-900">
+            <span className="font-medium text-stone-700">Temp password: </span>
+            <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono font-semibold text-stone-900">
               {reset.temp_password}
             </code>
           </div>
