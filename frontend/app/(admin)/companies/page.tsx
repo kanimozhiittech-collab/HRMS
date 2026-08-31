@@ -45,11 +45,17 @@ type AddResult = {
 function CompaniesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get("status") ?? "");
-
-  useEffect(() => {
-    setTab(searchParams.get("status") ?? "");
-  }, [searchParams]);
+  // Derived straight from the URL (not local state) — a sidebar link to the
+  // same tab you already navigated away from locally (e.g. via the Tabs
+  // control) is otherwise a same-URL Link click, which Next.js treats as a
+  // no-op and never re-syncs a separate local `tab` state.
+  const tab = searchParams.get("status") ?? "";
+  function setTab(next: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set("status", next);
+    else params.delete("status");
+    router.push(`/companies${params.toString() ? `?${params.toString()}` : ""}`);
+  }
   const [search, setSearch] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Map<number, Plan>>(new Map());
@@ -370,16 +376,16 @@ function CompaniesContent() {
       {approved && (
         <Modal title="Company Approved 🎉" onClose={() => setApproved(null)}>
           <p className="mb-4 text-sm text-stone-600">{approved.message}</p>
-          <div className="rounded-xl bg-stone-100 p-4 text-sm">
+          <div className="rounded-xl bg-stone-100 p-4 text-sm text-stone-900">
             <p>
-              <span className="font-medium text-stone-500">Admin email: </span>
+              <span className="font-medium text-stone-700">Admin email: </span>
               {approved.company_admin_email}
             </p>
             <p className="mt-1">
-              <span className="font-medium text-stone-500">
+              <span className="font-medium text-stone-700">
                 Temp password:{" "}
               </span>
-              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono font-semibold text-stone-900">
                 {approved.temp_password}
               </code>
             </p>
@@ -396,16 +402,16 @@ function CompaniesContent() {
           <p className="mb-4 text-sm text-stone-600">
             {added.company_name} was created and is already Active.
           </p>
-          <div className="rounded-xl bg-stone-100 p-4 text-sm">
+          <div className="rounded-xl bg-stone-100 p-4 text-sm text-stone-900">
             <p>
-              <span className="font-medium text-stone-500">Admin email: </span>
+              <span className="font-medium text-stone-700">Admin email: </span>
               {added.admin_email}
             </p>
             <p className="mt-1">
-              <span className="font-medium text-stone-500">
+              <span className="font-medium text-stone-700">
                 Temp password:{" "}
               </span>
-              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono">
+              <code className="rounded bg-stone-200 px-1.5 py-0.5 font-mono font-semibold text-stone-900">
                 {added.temp_password}
               </code>
             </p>

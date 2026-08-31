@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PlayCircle } from "lucide-react";
 import { api, daysLeft, fmtDate } from "@/lib/api";
 import type { Company, Plan, Subscription } from "@/lib/types";
@@ -25,14 +25,19 @@ const TABS = [
 ];
 
 function SubscriptionsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState(
-    searchParams.get("expiring") ? "expiring" : "",
-  );
-
-  useEffect(() => {
-    setTab(searchParams.get("expiring") ? "expiring" : "");
-  }, [searchParams]);
+  // Derived from the URL, not local state — see the same fix on the
+  // Companies page for why a same-URL sidebar Link click needs this.
+  const tab = searchParams.get("expiring") ? "expiring" : (searchParams.get("status") ?? "");
+  function setTab(next: string) {
+    if (next === "expiring") { router.push("/subscriptions?expiring=1"); return; }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("expiring");
+    if (next) params.set("status", next);
+    else params.delete("status");
+    router.push(`/subscriptions${params.toString() ? `?${params.toString()}` : ""}`);
+  }
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [companies, setCompanies] = useState<Map<number, Company>>(new Map());
   const [plans, setPlans] = useState<Map<number, Plan>>(new Map());
