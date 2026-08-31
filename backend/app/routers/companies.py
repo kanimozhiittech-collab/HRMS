@@ -48,6 +48,23 @@ def _provision_tenant(company: "models.Company", admin_name: str, temp_password:
         raise HTTPException(502, f"Could not provision tenant in company HRMS app: {e}")
 
 
+def _sync_logo_to_tenant(company: "models.Company") -> None:
+    """Best-effort — the tenant's own sidebar reads its own separate Company
+    row, not this one, so without this it keeps showing the default mark.
+    Not raised on failure: the logo still saved fine on our side, and this
+    is cosmetic rather than something that should block the request."""
+    try:
+        resp = requests.put(
+            f"{COMPANY_HRMS_URL}/api/provisioning/companies/{company.id}/logo",
+            json={"logo_url": company.logo_url},
+            headers={"X-Provision-Secret": PROVISION_SECRET},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except requests.RequestException:
+        pass
+
+
 def _onboard_company(db: Session, company: "models.Company", request: Request = None,
                      admin_id: Optional[int] = None) -> str:
     """The full onboarding chain, shared by auto-approve (register) and manual approve:
@@ -200,6 +217,7 @@ def upload_company_logo(
     company.logo_url = save_upload(file, "company-logos")
     db.commit()
     db.refresh(company)
+    _sync_logo_to_tenant(company)
     return company
 
 
