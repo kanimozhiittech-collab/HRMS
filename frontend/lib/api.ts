@@ -107,12 +107,25 @@ export async function apiUpload<T = unknown>(
 export const fmtMoney = (v: number | string | null | undefined) =>
   "₹" + new Intl.NumberFormat("en-IN").format(Number(v ?? 0));
 
+/** The backend stores timestamps as naive UTC (Python's `datetime.utcnow()`)
+ * and serializes them with no trailing Z/offset — the browser's Date parser
+ * treats a timezone-less date-TIME string as already-local, so every
+ * timestamp silently rendered 5:30 early for an IST viewer (e.g. a 7:30pm
+ * event showing as 2:00pm). Tag it as UTC explicitly before parsing. A
+ * date-only string (no time component) is left untouched — there's no
+ * time-of-day to misinterpret. */
+function parseServerDate(v: string): Date {
+  const hasTimeComponent = /\d{2}:\d{2}/.test(v);
+  const hasTz = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(v);
+  return new Date(hasTimeComponent && !hasTz ? `${v.replace(" ", "T")}Z` : v);
+}
+
 export const fmtDate = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  v ? parseServerDate(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 export const fmtDateTime = (v: string | null | undefined) =>
   v
-    ? new Date(v).toLocaleString("en-IN", {
+    ? parseServerDate(v).toLocaleString("en-IN", {
         day: "2-digit",
         month: "short",
         year: "numeric",
