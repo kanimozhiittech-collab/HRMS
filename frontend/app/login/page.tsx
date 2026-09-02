@@ -55,7 +55,7 @@ export default function LoginPage() {
 
         <ErrorNote message={error} />
 
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-4" autoComplete="off">
           <Field label="Email">
             <input
               type="email"
@@ -63,6 +63,8 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="superadmin@hrms.com"
+              autoComplete="off"
+              name="login-email"
             />
           </Field>
           <Field label="Password">
@@ -73,6 +75,8 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="new-password"
+                name="login-password"
               />
               <button
                 type="button"
